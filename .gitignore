@@ -1,0 +1,8 @@
+# Build artifacts
+*.exe
+*.test
+*.out
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db
