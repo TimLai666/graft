@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/TimLai666/graft v0.0.0
+	github.com/gogpu/gg v0.48.3
 	github.com/gogpu/gogpu v0.39.0
 	github.com/gogpu/ui v0.1.29
 )
@@ -13,7 +14,6 @@ require (
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/go-webgpu/goffi v0.5.1 // indirect
 	github.com/go-webgpu/webgpu v0.4.3 // indirect
-	github.com/gogpu/gg v0.48.3 // indirect
 	github.com/gogpu/gpucontext v0.19.0 // indirect
 	github.com/gogpu/gputypes v0.5.0 // indirect
 	github.com/gogpu/naga v0.17.13 // indirect

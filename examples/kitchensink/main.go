@@ -19,6 +19,8 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/gogpu/gg/gpu" // enable GPU SDF acceleration (else every boundary falls back to CPU)
+
 	"github.com/gogpu/gogpu"
 	"github.com/gogpu/ui/app"
 	"github.com/gogpu/ui/desktop"
