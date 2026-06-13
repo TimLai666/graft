@@ -87,10 +87,13 @@ func renderPNG(th *graft.Theme, path string) {
 
 // runWindow opens the live, interactive gallery.
 func runWindow(th *graft.Theme) {
+	// Keep ContinuousRender on (the gogpu default). With it off, gogpu only
+	// repaints when something calls RequestRedraw — and this demo has no
+	// redraw driver, so widget state changes (clicks, toggles, hover) would
+	// never reach the screen, making everything look frozen/non-interactive.
 	gpuApp := gogpu.NewApp(gogpu.DefaultConfig().
 		WithTitle("graft — Kitchen Sink").
-		WithSize(1100, 900).
-		WithContinuousRender(false))
+		WithSize(1100, 900))
 
 	uiApp := app.New(
 		app.WithWindowProvider(gpuApp),
