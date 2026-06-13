@@ -17,10 +17,12 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gogpu/gogpu"
 	"github.com/gogpu/ui/app"
 	"github.com/gogpu/ui/desktop"
+	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/offscreen"
 	"github.com/gogpu/ui/primitives"
 	"github.com/gogpu/ui/widget"
@@ -231,7 +233,7 @@ func sheet() widget.Widget {
 			row(
 				graft.DropdownMenuPreview(graft.DropdownMenuContent(
 					graft.DropdownMenuLabel("My Account"),
-					graft.DropdownMenuItem("Profile").Icon(icons.Circle).Shortcut("⇧⌘P"),
+					graft.DropdownMenuItem("Profile").Icon(icons.Circle).Shortcut("Ctrl P"),
 					graft.DropdownMenuItem("Settings").Icon(icons.Search),
 					graft.DropdownMenuSeparator(),
 					graft.DropdownMenuItem("Log out").Destructive(),
@@ -242,6 +244,125 @@ func sheet() widget.Widget {
 						graft.SelectItem("banana", "Banana"),
 					),
 				).Value("banana")),
+			),
+		),
+
+		section("Disclosure",
+			graft.Accordion(
+				graft.AccordionItem("a", "Is it accessible?",
+					graft.MutedText("Yes. It adheres to the WAI-ARIA design pattern.")),
+				graft.AccordionItem("b", "Is it styled?",
+					graft.MutedText("Yes. It comes with default styles.")),
+				graft.AccordionItem("c", "Is it animated?",
+					graft.MutedText("Yes. Animated by default.")),
+			).Value("a"),
+		),
+
+		section("Toggles & keys",
+			row(
+				graft.Toggle("Bold"),
+				graft.Toggle("Italic").On(true),
+				graft.Toggle("Underline").Outline(),
+			),
+			graft.ToggleGroup(
+				graft.ToggleGroupItem("left", "Left"),
+				graft.ToggleGroupItem("center", "Center"),
+				graft.ToggleGroupItem("right", "Right"),
+			).Value("center"),
+			row(graft.Kbd("Ctrl", "K"), graft.Kbd("Esc")),
+		),
+
+		section("Table",
+			graft.Table(
+				graft.TableHeader(graft.TableRow(
+					graft.TableHead("Invoice"), graft.TableHead("Status"), graft.TableHead("Amount"),
+				)),
+				graft.TableBody(
+					graft.TableRow(graft.TableCell("INV001"), graft.TableCell("Paid"), graft.TableCell("$250.00")),
+					graft.TableRow(graft.TableCell("INV002"), graft.TableCell("Pending"), graft.TableCell("$150.00")),
+					graft.TableRow(graft.TableCell("INV003"), graft.TableCell("Unpaid"), graft.TableCell("$350.00")),
+				),
+			),
+		),
+
+		section("Navigation & composition",
+			graft.Breadcrumb(
+				graft.BreadcrumbLink("Home"),
+				graft.BreadcrumbLink("Components"),
+				graft.BreadcrumbPage("Breadcrumb"),
+			),
+			graft.Pagination().Pages(10, 2),
+			graft.ButtonGroup(
+				graft.Button("Years").Outline(),
+				graft.Button("Months").Outline(),
+				graft.Button("Days").Outline(),
+			),
+			graft.InputGroup().
+				Leading(graft.InputGroupAddon(icons.Search)).
+				Placeholder("Search...").W(320),
+		),
+
+		section("Text input",
+			graft.Textarea().Placeholder("Type your message here.").W(360),
+		),
+
+		section("Sheet (right, settled open)",
+			graft.SheetPreview(
+				graft.SheetContent(
+					graft.SheetHeader(
+						graft.SheetTitle("Edit profile"),
+						graft.SheetDescription("Make changes to your profile here."),
+					),
+					graft.SheetFooter(graft.Button("Save changes")),
+				),
+				geometry.Sz(560, 320),
+			),
+		),
+
+		section("Calendar & date picker",
+			row(
+				graft.Calendar().
+					Month(time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC)).
+					Selected(time.Date(2026, time.June, 15, 0, 0, 0, 0, time.UTC)),
+				graft.DatePickerContentPreview(
+					time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC),
+					time.Date(2026, time.June, 12, 0, 0, 0, 0, time.UTC),
+					graft.CurrentTheme(),
+				),
+			),
+		),
+
+		section("Menus & cards (content previews)",
+			row(
+				graft.ContextMenuPreview(graft.ContextMenuContent(
+					graft.ContextMenuItem("Back"),
+					graft.ContextMenuItem("Forward").Disabled(true),
+					graft.ContextMenuSeparator(),
+					graft.ContextMenuItem("Reload").Shortcut("Ctrl R"),
+				)),
+				graft.MenubarMenuPreview(graft.MenubarContent(
+					graft.MenubarItem("New Tab").Shortcut("Ctrl T"),
+					graft.MenubarItem("New Window"),
+					graft.MenubarSeparator(),
+					graft.MenubarItem("Print").Shortcut("Ctrl P"),
+				)),
+				graft.ComboboxContentPreview(
+					graft.Combobox(
+						graft.ComboboxItem("next", "Next.js"),
+						graft.ComboboxItem("svelte", "SvelteKit"),
+						graft.ComboboxItem("astro", "Astro"),
+					),
+					"", "next", graft.CurrentTheme(),
+				),
+			),
+		),
+
+		section("Toasts",
+			graft.ToastStack(
+				graft.ToastCard("Your message was sent", graft.ToastSuccessOpt()),
+				graft.ToastCard("Could not save changes",
+					graft.ToastDescription("There was a problem with your request."),
+					graft.ToastErrorOpt()),
 			),
 		),
 	).Padding(40).Gap(40)
