@@ -149,6 +149,67 @@ func TestPanelMouseClickSelects(t *testing.T) {
 	}
 }
 
+// TestPanelKeyboardNavInvalidates verifies a navigation keystroke requests a
+// repaint frame through the context. Without ctx.InvalidateRect the highlight
+// change is invisible in event-driven render mode (the default).
+func TestPanelKeyboardNavInvalidates(t *testing.T) {
+	p := NewPanel(testTheme(), NewItem("A"), NewItem("B"))
+	size := p.ContentSize()
+	p.SetBounds(geometry.NewRect(0, 0, size.Width, size.Height))
+
+	ctx := uitest.NewMockContext()
+	p.Event(ctx, uitest.KeyPress(event.KeyDown, event.ModNone))
+	if len(ctx.InvalidatedRects) == 0 && !ctx.Invalidated {
+		t.Error("Down keypress did not request a repaint frame (no InvalidateRect)")
+	}
+}
+
+// TestPanelMouseHoverInvalidates verifies a hover highlight change requests a
+// repaint frame.
+func TestPanelMouseHoverInvalidates(t *testing.T) {
+	p := NewPanel(testTheme(), NewItem("A"), NewItem("B"))
+	size := p.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(400, 400)))
+	p.SetBounds(geometry.NewRect(0, 0, size.Width, size.Height))
+
+	ctx := uitest.NewMockContext()
+	// Move over the second row so the highlight changes from row 0 to row 1.
+	moveY := metrics.Menu.Pad + metrics.Menu.ItemHeight + metrics.Menu.ItemHeight/2
+	p.Event(ctx, uitest.MouseMove(20, moveY))
+	if p.Highlighted() != 1 {
+		t.Fatalf("hover highlight = %d, want 1", p.Highlighted())
+	}
+	if len(ctx.InvalidatedRects) == 0 && !ctx.Invalidated {
+		t.Error("hover highlight change did not request a repaint frame")
+	}
+}
+
+// TestPanelActivateFiresOnActivate verifies activating an item fires the
+// close-on-select hook (shadcn menus dismiss on select).
+func TestPanelActivateFiresOnActivate(t *testing.T) {
+	activated := false
+	p := NewPanel(testTheme(), NewItem("A").OnSelect(func() {})).
+		OnActivate(func() { activated = true })
+	p.Event(uitest.NewMockContext(), uitest.KeyPress(event.KeyEnter, event.ModNone))
+	if !activated {
+		t.Error("Enter activation did not fire OnActivate (menu would not close on select)")
+	}
+}
+
+// TestPanelCheckboxActivateClosesAndToggles verifies a checkbox both toggles
+// its state and fires the close-on-select hook.
+func TestPanelCheckboxActivateClosesAndToggles(t *testing.T) {
+	activated := false
+	cb := NewCheckboxItem("Show", icon.IconData{})
+	p := NewPanel(testTheme(), cb).OnActivate(func() { activated = true })
+	p.Event(uitest.NewMockContext(), uitest.KeyPress(event.KeyEnter, event.ModNone))
+	if !cb.Checked {
+		t.Error("checkbox not toggled on activate")
+	}
+	if !activated {
+		t.Error("checkbox activation did not fire OnActivate")
+	}
+}
+
 // TestPanelDrawsRows pins the row geometry via the mock canvas: the panel
 // surface and an accent highlight on the first item are drawn.
 func TestPanelDrawsRows(t *testing.T) {

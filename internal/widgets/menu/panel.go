@@ -29,6 +29,10 @@ type Panel struct {
 
 	// onClose, if set, is invoked when Escape is pressed.
 	onClose func()
+	// onActivate, if set, is invoked after an item/checkbox/radio row is
+	// activated (mouse click or Enter/Space). shadcn menus close on select
+	// (Radix default), so hosts wire this to remove the overlay.
+	onActivate func()
 }
 
 // NewPanel builds a menu panel for the given theme and entries. A nil theme
@@ -43,6 +47,11 @@ func NewPanel(th *theme.Theme, entries ...Entry) *Panel {
 
 // OnClose registers a callback fired when Escape is pressed.
 func (p *Panel) OnClose(fn func()) *Panel { p.onClose = fn; return p }
+
+// OnActivate registers a callback fired after an item/checkbox/radio row is
+// activated (click or Enter/Space). shadcn menus dismiss on select, so the
+// host wires this to close the overlay.
+func (p *Panel) OnActivate(fn func()) *Panel { p.onActivate = fn; return p }
 
 // Highlighted returns the index of the highlighted entry, or -1.
 func (p *Panel) Highlighted() int { return p.highlighted }
@@ -308,29 +317,29 @@ func (p *Panel) Event(ctx widget.Context, e event.Event) bool {
 	}
 }
 
-func (p *Panel) handleKey(_ widget.Context, e *event.KeyEvent) bool {
+func (p *Panel) handleKey(ctx widget.Context, e *event.KeyEvent) bool {
 	if e.KeyType != event.KeyPress && e.KeyType != event.KeyRepeat {
 		return false
 	}
 	switch e.Key {
 	case event.KeyDown:
 		p.move(1)
-		p.SetNeedsRedraw(true)
+		p.invalidate(ctx)
 		return true
 	case event.KeyUp:
 		p.move(-1)
-		p.SetNeedsRedraw(true)
+		p.invalidate(ctx)
 		return true
 	case event.KeyHome:
 		p.highlighted = p.firstSelectable()
-		p.SetNeedsRedraw(true)
+		p.invalidate(ctx)
 		return true
 	case event.KeyEnd:
 		p.highlighted = p.lastSelectable()
-		p.SetNeedsRedraw(true)
+		p.invalidate(ctx)
 		return true
 	case event.KeyEnter, event.KeySpace:
-		p.activate(p.highlighted)
+		p.activate(ctx, p.highlighted)
 		return true
 	case event.KeyEscape:
 		if p.onClose != nil {
@@ -342,7 +351,7 @@ func (p *Panel) handleKey(_ widget.Context, e *event.KeyEvent) bool {
 	}
 }
 
-func (p *Panel) handleMouse(_ widget.Context, e *event.MouseEvent) bool {
+func (p *Panel) handleMouse(ctx widget.Context, e *event.MouseEvent) bool {
 	bounds := p.Bounds()
 	if !bounds.Contains(e.Position) {
 		return false
@@ -352,7 +361,7 @@ func (p *Panel) handleMouse(_ widget.Context, e *event.MouseEvent) bool {
 	case event.MouseMove:
 		if idx >= 0 && idx != p.highlighted && p.entries[idx].selectable() {
 			p.highlighted = idx
-			p.SetNeedsRedraw(true)
+			p.invalidate(ctx)
 		}
 		return true
 	case event.MousePress:
@@ -360,11 +369,22 @@ func (p *Panel) handleMouse(_ widget.Context, e *event.MouseEvent) bool {
 			return false
 		}
 		if idx >= 0 && p.entries[idx].selectable() {
-			p.activate(idx)
+			p.activate(ctx, idx)
 		}
 		return true
 	default:
 		return true
+	}
+}
+
+// invalidate marks the panel dirty and requests a repaint frame. Marking
+// dirty alone is not enough in event-driven render mode (the default): a
+// frame must be requested via the context, otherwise keyboard/hover
+// highlight changes never repaint.
+func (p *Panel) invalidate(ctx widget.Context) {
+	p.SetNeedsRedraw(true)
+	if ctx != nil {
+		ctx.InvalidateRect(p.Bounds())
 	}
 }
 
@@ -383,8 +403,9 @@ func (p *Panel) rowAt(pos geometry.Point) int {
 }
 
 // activate fires the appropriate callback for the entry at index i (and
-// flips checkbox/radio state).
-func (p *Panel) activate(i int) {
+// flips checkbox/radio state), then requests the menu close — shadcn menus
+// dismiss on select (Radix default).
+func (p *Panel) activate(ctx widget.Context, i int) {
 	if i < 0 || i >= len(p.entries) || !p.entries[i].selectable() {
 		return
 	}
@@ -398,11 +419,14 @@ func (p *Panel) activate(i int) {
 		if en.OnChangeFn != nil {
 			en.OnChangeFn(en.Checked)
 		}
-		p.SetNeedsRedraw(true)
+		p.invalidate(ctx)
 	case *RadioEntry:
 		if en.OnSelectFn != nil {
 			en.OnSelectFn(en.Value)
 		}
+	}
+	if p.onActivate != nil {
+		p.onActivate()
 	}
 }
 

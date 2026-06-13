@@ -333,11 +333,13 @@ func (s *SelectWidget) handleMouse(ctx widget.Context, e *event.MouseEvent) bool
 		s.hovered = true
 		ctx.SetCursor(widget.CursorPointer)
 		s.SetNeedsRedraw(true)
+		ctx.InvalidateRect(s.Bounds())
 		return true
 	case event.MouseLeave:
 		s.hovered = false
 		ctx.SetCursor(widget.CursorDefault)
 		s.SetNeedsRedraw(true)
+		ctx.InvalidateRect(s.Bounds())
 		return true
 	case event.MousePress:
 		if e.Button != event.ButtonLeft {
@@ -433,6 +435,7 @@ func (s *SelectWidget) openMenu(ctx widget.Context) {
 	s.menu.SetBounds(geometry.FromPointSize(pos, menuSize))
 	om.PushOverlay(s.menu, func() { s.closeMenu(ctx) })
 	s.SetNeedsRedraw(true)
+	ctx.Invalidate()
 }
 
 // menuHeight returns the total content height for the flattened rows.
@@ -470,6 +473,7 @@ func (s *SelectWidget) closeMenu(ctx widget.Context) {
 		s.menu = nil
 	}
 	s.SetNeedsRedraw(true)
+	ctx.Invalidate()
 }
 
 // commit applies a new selection value and fires observers.
@@ -649,6 +653,17 @@ func (m *selectMenu) drawSeparator(canvas widget.Canvas, th *theme.Theme, bounds
 	canvas.DrawRect(geometry.NewRect(bounds.Min.X+selectSeparatorInset, lineY, bounds.Width()-2*selectSeparatorInset, 1), tok.Border)
 }
 
+// invalidate marks the menu dirty and requests a repaint frame. In
+// event-driven render mode (the default) marking dirty alone never repaints —
+// a frame must be requested through the context, otherwise the highlighted
+// row change is invisible until the next unrelated event.
+func (m *selectMenu) invalidate(ctx widget.Context) {
+	m.SetNeedsRedraw(true)
+	if ctx != nil {
+		ctx.InvalidateRect(m.Bounds())
+	}
+}
+
 // Event handles keyboard navigation and mouse selection in the menu.
 func (m *selectMenu) Event(ctx widget.Context, e event.Event) bool {
 	switch ev := e.(type) {
@@ -668,19 +683,19 @@ func (m *selectMenu) handleKey(ctx widget.Context, e *event.KeyEvent) bool {
 	switch e.Key {
 	case event.KeyDown:
 		m.moveHighlight(1)
-		m.SetNeedsRedraw(true)
+		m.invalidate(ctx)
 		return true
 	case event.KeyUp:
 		m.moveHighlight(-1)
-		m.SetNeedsRedraw(true)
+		m.invalidate(ctx)
 		return true
 	case event.KeyHome:
 		m.highlighted = m.firstEnabledItem()
-		m.SetNeedsRedraw(true)
+		m.invalidate(ctx)
 		return true
 	case event.KeyEnd:
 		m.highlighted = m.lastEnabledItem()
-		m.SetNeedsRedraw(true)
+		m.invalidate(ctx)
 		return true
 	case event.KeyEnter, event.KeySpace:
 		m.selectHighlighted(ctx)
@@ -707,7 +722,7 @@ func (m *selectMenu) handleMouse(ctx widget.Context, e *event.MouseEvent) bool {
 	case event.MouseMove:
 		if ok && idx != m.highlighted {
 			m.highlighted = idx
-			m.SetNeedsRedraw(true)
+			m.invalidate(ctx)
 		}
 		return true
 	case event.MousePress:

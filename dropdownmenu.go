@@ -121,6 +121,7 @@ func (d *DropdownMenuWidget) pushOverlay(ctx widget.Context) {
 	th := d.resolvedTheme()
 	panel := d.content.buildPanel(th)
 	panel.OnClose(func() { d.setOpen(ctx, false) })
+	panel.OnActivate(func() { d.setOpen(ctx, false) })
 
 	anchor := d.trigger.ScreenBounds()
 	size := panel.ContentSize()
@@ -130,6 +131,8 @@ func (d *DropdownMenuWidget) pushOverlay(ctx widget.Context) {
 	oc := &menuOverlayContent{panel: panel, onDismiss: func() { d.setOpen(ctx, false) }}
 	d.overlayContent = oc
 	om.PushOverlay(oc, func() { d.setOpen(ctx, false) })
+	d.SetNeedsRedraw(true)
+	ctx.Invalidate()
 }
 
 func (d *DropdownMenuWidget) removeOverlay(ctx widget.Context) {
@@ -140,6 +143,8 @@ func (d *DropdownMenuWidget) removeOverlay(ctx widget.Context) {
 		om.RemoveOverlay(d.overlayContent)
 	}
 	d.overlayContent = nil
+	d.SetNeedsRedraw(true)
+	ctx.Invalidate()
 }
 
 // Layout positions the trigger (the host occupies the trigger's space).
