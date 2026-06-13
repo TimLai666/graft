@@ -27,6 +27,7 @@ import (
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/offscreen"
 	"github.com/gogpu/ui/primitives"
+	"github.com/gogpu/ui/state"
 	"github.com/gogpu/ui/widget"
 
 	"github.com/TimLai666/graft"
@@ -100,11 +101,134 @@ func runWindow(th *graft.Theme) {
 	if err := graft.Install(uiApp, th); err != nil {
 		log.Fatal(err)
 	}
-	uiApp.SetRoot(graft.ScrollArea(sheet()).W(1100).H(900))
+	// Do NOT hard-code the ScrollArea size: let it fill the framework-provided
+	// window constraints so it stays correct under HiDPI scaling and window
+	// resizes. Hard-coding logical px here mismatches the scaled coordinate
+	// space and pushes content into a corner with dead hit-testing.
+	uiApp.SetRoot(graft.ScrollArea(interactiveSheet()))
 
 	if err := desktop.Run(gpuApp, uiApp); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// interactiveSheet is the window-mode root: real, clickable components
+// (triggers, signals, handlers) rather than the static preview widgets used
+// for golden images. Returned wrapped in a ScrollArea that fills the window.
+func interactiveSheet() widget.Widget {
+	selected := state.NewSignal("next")
+	dialogOpen := state.NewSignal(false)
+
+	body := primitives.VBox(
+		graft.H1("graft"),
+		graft.Lead("Interactive demo — click, type, drag, toggle."),
+
+		section("Buttons (hover + click)",
+			row(
+				graft.Button("Default").OnClick(func() { dialogOpen.Set(true) }),
+				graft.Button("Secondary").Secondary(),
+				graft.Button("Destructive").Destructive(),
+				graft.Button("Outline").Outline(),
+				graft.Button("Ghost").Ghost(),
+			),
+		),
+
+		section("Form controls (uncontrolled — just click/type/drag)",
+			graft.Label("Email"),
+			graft.Input().Placeholder("m@example.com").W(320),
+			graft.Textarea().Placeholder("Type a message...").W(320),
+			row(
+				graft.Checkbox().Label("Accept terms"),
+				graft.Checkbox().Label("Subscribe").Checked(true),
+			),
+			row(graft.Switch(), graft.Switch().Checked(true), graft.Switch().Sm()),
+			graft.RadioGroup(
+				graft.RadioGroupItem("comfortable", "Comfortable"),
+				graft.RadioGroupItem("compact", "Compact"),
+			).Value("comfortable"),
+			graft.Slider().Value(40).W(320),
+			row(
+				graft.Toggle("Bold"),
+				graft.Toggle("Italic"),
+				graft.ToggleGroup(
+					graft.ToggleGroupItem("left", "Left"),
+					graft.ToggleGroupItem("center", "Center"),
+					graft.ToggleGroupItem("right", "Right"),
+				).Value("center"),
+			),
+		),
+
+		section("Tabs",
+			graft.Tabs(
+				graft.TabsList(
+					graft.TabsTrigger("account", "Account"),
+					graft.TabsTrigger("password", "Password"),
+				),
+				graft.TabsContent("account", graft.MutedText("Make changes to your account here.")),
+				graft.TabsContent("password", graft.MutedText("Change your password here.")),
+			).Value("account"),
+		),
+
+		section("Accordion",
+			graft.Accordion(
+				graft.AccordionItem("a", "Is it accessible?",
+					graft.MutedText("Yes. It adheres to the WAI-ARIA design pattern.")),
+				graft.AccordionItem("b", "Is it styled?",
+					graft.MutedText("Yes. It comes with default styles.")),
+				graft.AccordionItem("c", "Is it animated?",
+					graft.MutedText("Yes. Animated by default.")),
+			),
+		),
+
+		section("Overlays (click to open)",
+			row(
+				graft.Select(
+					graft.SelectItem("next", "Next.js"),
+					graft.SelectItem("svelte", "SvelteKit"),
+					graft.SelectItem("astro", "Astro"),
+				).Bind(selected).W(200),
+
+				graft.DropdownMenu(
+					graft.DropdownMenuTrigger(graft.Button("Open menu").Outline()),
+					graft.DropdownMenuContent(
+						graft.DropdownMenuLabel("My Account"),
+						graft.DropdownMenuItem("Profile").Icon(icons.Circle),
+						graft.DropdownMenuItem("Settings").Icon(icons.Search),
+						graft.DropdownMenuSeparator(),
+						graft.DropdownMenuItem("Log out").Destructive(),
+					),
+				),
+
+				graft.Popover(
+					graft.Button("Open popover").Outline(),
+					graft.PopoverContent(
+						graft.H4("Dimensions"),
+						graft.MutedText("Set the dimensions for the layer."),
+						graft.Input().Placeholder("Width").W(200),
+					),
+				),
+
+				graft.DialogTrigger(graft.Button("Edit profile"), dialogOpen),
+				graft.Dialog(
+					graft.DialogContent(
+						graft.DialogHeader(
+							graft.DialogTitle("Edit profile"),
+							graft.DialogDescription("Make changes to your profile here."),
+						),
+						graft.Input().Placeholder("Name").W(360),
+						graft.DialogFooter(
+							graft.Button("Cancel").Outline().OnClick(func() { dialogOpen.Set(false) }),
+							graft.Button("Save changes").OnClick(func() {
+								dialogOpen.Set(false)
+							}),
+						),
+					),
+				).Bind(dialogOpen),
+			),
+		),
+	).Padding(40).Gap(40)
+
+	return body
 }
 
 // section wraps a titled group of demos.
