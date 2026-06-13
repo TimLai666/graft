@@ -149,6 +149,7 @@ func (m *MenubarWidget) openMenu(ctx widget.Context, i int) {
 	th := m.resolvedTheme()
 	panel := mm.content.buildPanel(th)
 	panel.OnClose(func() { m.closeMenu(ctx) })
+	panel.OnActivate(func() { m.closeMenu(ctx) })
 
 	anchor := mm.ScreenBounds()
 	size := panel.ContentSize()
@@ -289,7 +290,9 @@ func (mm *MenubarMenuWidget) Event(ctx widget.Context, e event.Event) bool {
 	case event.MouseLeave:
 		if mm.hover {
 			mm.hover = false
+			ctx.SetCursor(widget.CursorDefault)
 			mm.SetNeedsRedraw(true)
+			ctx.Invalidate()
 		}
 	case event.MousePress:
 		if inside && me.Button == event.ButtonLeft && mm.owner != nil {
