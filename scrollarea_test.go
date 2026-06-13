@@ -12,18 +12,7 @@ import (
 	"github.com/TimLai666/graft"
 	"github.com/TimLai666/graft/internal/gtest"
 	"github.com/TimLai666/graft/metrics"
-	"github.com/TimLai666/graft/theme"
 )
-
-// forceLightMode pins the current theme to light for token assertions and
-// restores the previous mode afterwards.
-func forceLightMode(t *testing.T) {
-	t.Helper()
-	th := graft.CurrentTheme()
-	prev := th.Mode()
-	th.SetMode(theme.ModeLight)
-	t.Cleanup(func() { th.SetMode(prev) })
-}
 
 func approxEq(a, b float32) bool {
 	return math.Abs(float64(a-b)) < 0.01

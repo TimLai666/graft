@@ -12,19 +12,7 @@ import (
 	"github.com/TimLai666/graft"
 	"github.com/TimLai666/graft/internal/gtest"
 	"github.com/TimLai666/graft/metrics"
-	"github.com/TimLai666/graft/theme"
 )
-
-// lightTokens forces light mode and returns the active token set plus a
-// restore function.
-func lightTokens(t *testing.T) *theme.Tokens {
-	t.Helper()
-	th := graft.CurrentTheme()
-	prev := th.Mode()
-	th.SetMode(theme.ModeLight)
-	t.Cleanup(func() { th.SetMode(prev) })
-	return th.Active()
-}
 
 func approx(a, b float32) bool {
 	d := a - b
