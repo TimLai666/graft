@@ -484,7 +484,7 @@ func (it *ToggleGroupItemWidget) SetFocused(focused bool) {
 	} else {
 		it.focusVisible = false
 	}
-	it.SetNeedsRedraw(true)
+	it.MarkRedrawLocal() // not SetNeedsRedraw: avoids context-lock re-entry in RequestFocus
 }
 
 // IsFocusable reports keyboard focusability.

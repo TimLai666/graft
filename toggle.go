@@ -343,7 +343,7 @@ func (t *ToggleWidget) activate(ctx widget.Context) {
 func (t *ToggleWidget) SetFocused(focused bool) {
 	t.focusVisible = focused && !t.pointerFocus
 	t.WidgetBase.SetFocused(focused)
-	t.SetNeedsRedraw(true)
+	t.MarkRedrawLocal() // not SetNeedsRedraw: avoids context-lock re-entry in RequestFocus
 }
 
 // IsFocusable reports whether the toggle can take keyboard focus.

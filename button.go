@@ -627,7 +627,12 @@ func (b *ButtonWidget) IsFocusable() bool {
 func (b *ButtonWidget) SetFocused(focused bool) {
 	b.focusVisible = focused && !b.pointerFocus
 	b.WidgetBase.SetFocused(focused)
-	b.SetNeedsRedraw(true)
+	// MarkRedrawLocal, NOT SetNeedsRedraw: SetFocused runs inside
+	// ctx.RequestFocus, which holds the context write lock. SetNeedsRedraw
+	// propagates into ctx.RegisterDirtyBoundary (an RLock on that same
+	// non-reentrant RWMutex) and deadlocks. MarkRedrawLocal only flips this
+	// widget's own dirty flag, which the frame loop still picks up.
+	b.MarkRedrawLocal()
 }
 
 // Mount registers signal bindings (widget.Lifecycle).

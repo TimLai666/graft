@@ -632,7 +632,7 @@ func (tr *TabsTriggerWidget) SetFocused(focused bool) {
 	} else {
 		tr.focusVisible = false
 	}
-	tr.SetNeedsRedraw(true)
+	tr.MarkRedrawLocal() // not SetNeedsRedraw: avoids context-lock re-entry in RequestFocus
 }
 
 // IsFocusable reports keyboard focusability (disabled triggers are

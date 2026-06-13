@@ -378,7 +378,7 @@ func (g *InputGroupWidget) IsFocusable() bool {
 func (g *InputGroupWidget) SetFocused(focused bool) {
 	g.field.SetFocused(focused)
 	g.WidgetBase.SetFocused(focused)
-	g.SetNeedsRedraw(true)
+	g.MarkRedrawLocal() // not SetNeedsRedraw: avoids context-lock re-entry in RequestFocus
 }
 
 // Mount mounts the inner field.

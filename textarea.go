@@ -744,7 +744,7 @@ func (t *TextareaWidget) IsFocusable() bool {
 func (t *TextareaWidget) SetFocused(focused bool) {
 	t.WidgetBase.SetFocused(focused)
 	t.focusVisible = focused
-	t.SetNeedsRedraw(true)
+	t.MarkRedrawLocal() // not SetNeedsRedraw: avoids context-lock re-entry in RequestFocus
 }
 
 // Mount binds the value signal so external writes repaint.
