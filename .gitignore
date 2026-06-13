@@ -9,3 +9,7 @@ Thumbs.db
 
 # Claude Code session artifacts (worktrees, etc.)
 .claude/
+
+# Regenerable reference dumps and golden-diff artifacts
+testdata/sheet-*.png
+testdata/golden/*.got.png
