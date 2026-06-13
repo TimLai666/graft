@@ -105,6 +105,16 @@ go run ./examples/kitchensink -png sheet.png -dark  # headless dark sheet
 
 (Without the workspace, run it from inside the directory: `cd examples/kitchensink && go run .`)
 
+## Known limitations
+
+- **HiDPI Windows displays (>100% scaling):** the gallery renders oversized and
+  mouse hit-testing is offset on Windows displays scaled above 100%. This is an
+  upstream gogpu bug — `gogpu.App.ScaleFactor()` returns `1.0` on a 200% display,
+  so the render scale and the event/layout scale diverge. Tracked at
+  [gogpu/gogpu#306](https://github.com/gogpu/gogpu/issues/306). It affects only
+  the native-window path; graft's components are unaffected (golden tests render
+  off-screen) and the gallery is correct at 100% scaling.
+
 ## License
 
 MIT. Geist font © Vercel (OFL-1.1), Lucide icons (ISC), design system by [shadcn](https://ui.shadcn.com).
