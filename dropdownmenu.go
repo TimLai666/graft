@@ -251,14 +251,6 @@ func (t *DropdownMenuTriggerWidget) Children() []widget.Widget {
 	return []widget.Widget{t.child}
 }
 
-// setWidgetBounds sets a widget's bounds if it supports SetBounds (all
-// WidgetBase-embedding widgets do).
-func setWidgetBounds(w Widget, r geometry.Rect) {
-	if setter, ok := w.(interface{ SetBounds(geometry.Rect) }); ok {
-		setter.SetBounds(r)
-	}
-}
-
 // --- content ------------------------------------------------------------
 
 // DropdownMenuContentWidget holds the menu entries. It is a zero-size,
