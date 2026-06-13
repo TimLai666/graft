@@ -122,6 +122,7 @@ func runWindow(th *graft.Theme) {
 func interactiveSheet() widget.Widget {
 	selected := state.NewSignal("next")
 	dialogOpen := state.NewSignal(false)
+	cmdOpen := state.NewSignal(false)
 
 	body := primitives.VBox(
 		graft.H1("graft"),
@@ -162,6 +163,10 @@ func interactiveSheet() widget.Widget {
 			),
 		),
 
+		section("Input OTP",
+			graft.InputOTP().Length(6).Groups(3, 3),
+		),
+
 		section("Tabs",
 			graft.Tabs(
 				graft.TabsList(
@@ -182,6 +187,34 @@ func interactiveSheet() widget.Widget {
 				graft.AccordionItem("c", "Is it animated?",
 					graft.MutedText("Yes. Animated by default.")),
 			),
+		),
+
+		section("Carousel",
+			graft.Carousel(
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H2("Slide 1"))).W(300)),
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H2("Slide 2"))).W(300)),
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H2("Slide 3"))).W(300)),
+			),
+		),
+
+		section("Resizable panels (drag the divider)",
+			graft.ResizablePanelGroup(graft.ResizableHorizontal,
+				graft.ResizablePanel(
+					graft.Card(graft.CardContent(graft.MutedText("Panel A"))).W(200),
+				).DefaultSize(0.5),
+				graft.ResizableHandle().WithHandle(),
+				graft.ResizablePanel(
+					graft.Card(graft.CardContent(graft.MutedText("Panel B"))).W(200),
+				),
+			),
+		),
+
+		section("Charts",
+			graft.LineChart(
+				graft.LineSeries("desktop", 186, 305, 237, 273, 209, 214).Dots(true),
+				graft.LineSeries("mobile", 80, 200, 120, 190, 130, 140),
+			).Categories("Jan", "Feb", "Mar", "Apr", "May", "Jun").
+				Legend(true).W(500).H(250),
 		),
 
 		section("Overlays (click to open)",
@@ -228,6 +261,22 @@ func interactiveSheet() widget.Widget {
 						),
 					),
 				).Bind(dialogOpen),
+
+				graft.Button("Command palette").Outline().OnClick(func() { cmdOpen.Set(true) }),
+				graft.CommandDialog(
+					graft.CommandInput().Placeholder("Type a command or search..."),
+					graft.CommandList(
+						graft.CommandGroup("Suggestions",
+							graft.CommandItem("Calendar").Icon(icons.Calendar),
+							graft.CommandItem("Search").Icon(icons.Search),
+						),
+						graft.CommandSeparator(),
+						graft.CommandGroup("Settings",
+							graft.CommandItem("Profile").Icon(icons.Circle),
+							graft.CommandItem("Billing"),
+						),
+					),
+				).Bind(cmdOpen),
 			),
 		),
 	).Padding(40).Gap(40)
@@ -493,6 +542,77 @@ func sheet() widget.Widget {
 				graft.ToastCard("Could not save changes",
 					graft.ToastDescription("There was a problem with your request."),
 					graft.ToastErrorOpt()),
+			),
+		),
+
+		section("Input OTP",
+			graft.InputOTP().Length(6).Groups(3, 3).SetValue("123456"),
+		),
+
+		section("Carousel",
+			graft.Carousel(
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H3("Slide 1"))).W(280)),
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H3("Slide 2"))).W(280)),
+				graft.CarouselItem(graft.Card(graft.CardContent(graft.H3("Slide 3"))).W(280)),
+			),
+		),
+
+		section("Resizable panels",
+			graft.ResizablePanelGroup(graft.ResizableHorizontal,
+				graft.ResizablePanel(graft.MutedText("Panel A")).DefaultSize(0.5),
+				graft.ResizableHandle().WithHandle(),
+				graft.ResizablePanel(graft.MutedText("Panel B")),
+			),
+		),
+
+		section("Charts",
+			graft.LineChart(
+				graft.LineSeries("desktop", 186, 305, 237, 273, 209, 214).Dots(true),
+				graft.LineSeries("mobile", 80, 200, 120, 190, 130, 140),
+			).Categories("Jan", "Feb", "Mar", "Apr", "May", "Jun").
+				Legend(true).W(500).H(250),
+			graft.BarChart(
+				graft.BarSeries("revenue", 450, 380, 520, 490, 610, 580),
+			).Categories("Jan", "Feb", "Mar", "Apr", "May", "Jun").W(500).H(200),
+		),
+
+		section("Command palette (preview)",
+			graft.CommandPreview(
+				graft.Command(
+					graft.CommandInput().Placeholder("Type a command or search..."),
+					graft.CommandList(
+						graft.CommandGroup("Suggestions",
+							graft.CommandItem("Calendar").Icon(icons.Calendar),
+							graft.CommandItem("Search").Icon(icons.Search).Shortcut("Ctrl K"),
+						),
+						graft.CommandSeparator(),
+						graft.CommandGroup("Settings",
+							graft.CommandItem("Profile").Icon(icons.Circle),
+							graft.CommandItem("Billing"),
+						),
+					),
+				), "", 0, graft.CurrentTheme(),
+			),
+		),
+
+		section("Field & form",
+			graft.Field(
+				graft.Label("Username"),
+				graft.Input().Placeholder("Enter username").W(300),
+				graft.MutedText("This is your public display name."),
+			),
+		),
+
+		section("Empty state",
+			primitives.Box(graft.Empty(
+				graft.H4("No results"),
+				graft.MutedText("Try adjusting your search or filters."),
+			)).Width(360),
+		),
+
+		section("Aspect ratio",
+			graft.AspectRatio(16.0/9.0,
+				graft.Card(graft.CardContent(graft.MutedText("16:9 content area"))).W(320),
 			),
 		),
 	).Padding(40).Gap(40)
