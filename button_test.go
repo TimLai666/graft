@@ -43,7 +43,7 @@ func darkTokens(t *testing.T) *theme.Tokens {
 	return th.Active()
 }
 
-func alpha(c widget.Color, a float32) widget.Color { c.A = a; return c }
+func alpha(c widget.Color, a float32) widget.Color    { c.A = a; return c }
 func mulAlpha(c widget.Color, f float32) widget.Color { c.A *= f; return c }
 
 func TestButtonLayoutExactWidth(t *testing.T) {
