@@ -500,7 +500,7 @@ func (c *DialogContentWidget) Children() []widget.Widget { return c.children }
 type DialogSectionWidget struct {
 	widget.WidgetBase
 	children []widget.Widget
-	row      bool    // true = footer (horizontal, right-aligned)
+	row      bool // true = footer (horizontal, right-aligned)
 	gap      float32
 }
 
