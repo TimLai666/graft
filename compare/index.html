@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>graft vs shadcn — pixel comparison</title>
+<style>
+  body { font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif; margin: 32px; color: #18181b; background: #fff; }
+  h1 { font-size: 20px; }
+  p.note { color: #71717a; max-width: 60ch; }
+  table { border-collapse: collapse; margin-top: 24px; }
+  th { text-align: left; font-size: 12px; color: #71717a; padding: 8px 12px; border-bottom: 1px solid #e4e4e7; }
+  td { padding: 14px 12px; border-bottom: 1px solid #f4f4f5; vertical-align: top; }
+  td.name { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; color: #3f3f46; white-space: nowrap; }
+  img { display: block; max-width: 460px; background:
+        repeating-conic-gradient(#f4f4f5 0% 25%, #fff 0% 50%) 50% / 16px 16px; }
+  .missing { color: #a1a1aa; font-style: italic; font-size: 12px; }
+</style>
+<h1>graft vs shadcn — pixel comparison</h1>
+<p class="note">
+  Left: a real ui.shadcn.com screenshot (drop PNGs into <code>compare/shadcn/&lt;name&gt;.png</code>).
+  Right: graft's render of the same component, emitted by
+  <code>go test -run TestEmitCompareImages</code> into <code>compare/graft/</code>.
+  Theme on both sides: Neutral base, radius 0.625rem, light mode.
+</p>
+<table>
+  <thead><tr><th>component</th><th>shadcn (reference)</th><th>graft</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script>
+  const names = [
+    "button-default","button-secondary","button-destructive","button-outline","button-ghost","button-link",
+    "badge-default","badge-secondary","badge-destructive","badge-outline","badge-icon",
+    "input","textarea","checkbox","switch-on","switch-off","radiogroup","slider","label","separator",
+    "progress","spinner","skeleton","avatar","alert","card","tabs","accordion",
+    "select-menu","dropdown-menu","item",
+  ];
+  const rows = document.getElementById("rows");
+  for (const n of names) {
+    const tr = document.createElement("tr");
+    const cell = (side) => {
+      const td = document.createElement("td");
+      const img = document.createElement("img");
+      img.src = `${side}/${n}.png`;
+      img.onerror = () => { td.innerHTML = `<span class="missing">no ${side}/${n}.png</span>`; };
+      td.appendChild(img);
+      return td;
+    };
+    const name = document.createElement("td");
+    name.className = "name"; name.textContent = n;
+    tr.append(name, cell("shadcn"), cell("graft"));
+    rows.appendChild(tr);
+  }
+</script>

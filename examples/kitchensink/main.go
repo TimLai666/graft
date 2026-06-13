@@ -19,6 +19,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gogpu/gg"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/offscreen"
 	"github.com/gogpu/ui/primitives"
@@ -54,6 +55,11 @@ func renderPNG(th *graft.Theme, path string) {
 	if err := graft.LoadAssets(); err != nil {
 		log.Fatal(err)
 	}
+	// This binary links the GPU SDF accelerator (via graftapp, for the live
+	// window). The offscreen renderer is CPU-only and produces a blank image
+	// while a GPU accelerator is registered but has no surface, so close it
+	// before rendering headlessly. Harmless here: the -png path exits after.
+	gg.CloseAccelerator()
 	// Components snapshot graft.CurrentTheme() at construction, so make th
 	// current before building the sheet (the window path does this via
 	// graft.Install).
