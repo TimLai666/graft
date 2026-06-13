@@ -43,11 +43,13 @@ type SwitchWidget struct {
 	// pinned to the checked state at construction and tweened on toggle.
 	progress float32
 	animCtrl *animation.Controller
+	animAdpt switchProgress
 }
 
 // Switch creates an unchecked switch snapshotting the current theme.
 func Switch() *SwitchWidget {
 	s := &SwitchWidget{theme: CurrentTheme(), animCtrl: animation.NewController()}
+	s.animAdpt.w = s
 	s.SetVisible(true)
 	s.SetEnabled(true)
 	return s
@@ -214,14 +216,16 @@ func (s *SwitchWidget) toggle(ctx widget.Context) {
 }
 
 // startAnimation tweens progress toward the target (1 on, 0 off) over 150ms
-// with the shadcn cubic-bezier easing.
+// with the shadcn cubic-bezier easing. The adapter is a persistent field so
+// the animation controller uses the same map key across toggles, enabling
+// auto-cancel of the previous animation on rapid re-toggle.
 func (s *SwitchWidget) startAnimation(ctx widget.Context, on bool) {
 	if s.animCtrl == nil {
 		s.progress = boolToProgress(on)
 		return
 	}
-	adapter := &switchProgress{w: s, ctx: ctx}
-	animation.To(adapter, boolToProgress(on)).
+	s.animAdpt.ctx = ctx
+	animation.To(&s.animAdpt, boolToProgress(on)).
 		From(s.progress).
 		Duration(metrics.Switch.AnimDuration).
 		Ease(animation.CubicBezier(0.4, 0, 0.2, 1)).

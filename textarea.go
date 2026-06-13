@@ -60,6 +60,8 @@ type TextareaWidget struct {
 	focusVisible bool
 	dragging     bool
 
+	clipboard string
+
 	// wrap caches the last computed soft-wrap layout (rebuilt every Layout).
 	wrap wrapLayout
 }
@@ -569,10 +571,39 @@ func (t *TextareaWidget) keyEvent(ctx widget.Context, e *event.KeyEvent) bool {
 		return false
 	}
 	shift := e.Modifiers().Has(event.ModShift)
+	ctrl := e.Modifiers().IsCtrl()
+
+	if ctrl {
+		switch e.Key {
+		case event.KeyA:
+			runes := []rune(t.resolvedText())
+			t.sel = 0
+			t.caret = len(runes)
+			t.invalidate(ctx)
+			return true
+		case event.KeyC:
+			t.copySelection()
+			return true
+		case event.KeyX:
+			t.copySelection()
+			t.deleteSelection()
+			t.scrollToCaret()
+			t.invalidate(ctx)
+			return true
+		case event.KeyV:
+			if t.clipboard != "" {
+				t.insert(t.clipboard)
+				t.scrollToCaret()
+				t.invalidate(ctx)
+			}
+			return true
+		}
+	}
 
 	switch e.Key {
 	case event.KeyBackspace:
 		t.backspace()
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyDelete:
@@ -581,36 +612,44 @@ func (t *TextareaWidget) keyEvent(ctx widget.Context, e *event.KeyEvent) bool {
 		return true
 	case event.KeyEnter:
 		t.insert("\n")
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyLeft:
 		t.moveCaret(t.caret-1, shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyRight:
 		t.moveCaret(t.caret+1, shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyUp:
 		t.moveCaret(t.verticalOffset(-1), shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyDown:
 		t.moveCaret(t.verticalOffset(1), shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyHome:
 		t.moveCaret(t.rowEdge(false), shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	case event.KeyEnd:
 		t.moveCaret(t.rowEdge(true), shift)
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	}
 
 	if e.Rune != 0 && e.Rune >= 0x20 {
 		t.insert(string(e.Rune))
+		t.scrollToCaret()
 		t.invalidate(ctx)
 		return true
 	}
@@ -667,6 +706,38 @@ func (t *TextareaWidget) deleteSelection() {
 	t.setText(out)
 	t.caret = start
 	t.sel = start
+}
+
+// copySelection stores the selected text in the internal clipboard.
+func (t *TextareaWidget) copySelection() {
+	if t.caret == t.sel {
+		return
+	}
+	runes := []rune(t.resolvedText())
+	start, end := t.selRange()
+	t.clipboard = string(runes[start:end])
+}
+
+// scrollToCaret adjusts scrollY so the caret row is visible within the
+// control's content area. Called after every editing/navigation operation.
+func (t *TextareaWidget) scrollToCaret() {
+	bounds := t.Bounds()
+	if bounds.IsEmpty() {
+		return
+	}
+	contentH := bounds.Height() - 2*(metrics.Textarea.PadY+metrics.Textarea.BorderWidth)
+	if contentH <= 0 {
+		return
+	}
+	_, row := t.caretXY(t.caret)
+	lineH := metrics.Textarea.LineHeight
+	caretTop := row * lineH
+	caretBot := caretTop + lineH
+	if caretTop < t.scrollY {
+		t.scrollY = caretTop
+	} else if caretBot > t.scrollY+contentH {
+		t.scrollY = caretBot - contentH
+	}
 }
 
 // moveCaret sets the caret, extending the selection when shift is held.

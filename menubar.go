@@ -287,6 +287,9 @@ func (mm *MenubarMenuWidget) Event(ctx widget.Context, e event.Event) bool {
 			mm.SetNeedsRedraw(true)
 			ctx.Invalidate()
 		}
+		if inside && mm.owner != nil && mm.owner.openIndex >= 0 && mm.owner.openIndex != mm.index {
+			mm.owner.toggle(ctx, mm.index)
+		}
 	case event.MouseLeave:
 		if mm.hover {
 			mm.hover = false

@@ -354,11 +354,15 @@ func (g *InputGroupWidget) Event(ctx widget.Context, e event.Event) bool {
 	if g.disabled {
 		return false
 	}
-	// Button addons consume their own clicks first.
+	// Button addons consume their own clicks when the cursor is over them.
+	// MouseLeave is forwarded unconditionally (to clear hover), but we don't
+	// let a button consume it — the field also needs to see it.
 	for _, a := range []*InputGroupAddonWidget{g.leading, g.trailing} {
 		if a != nil && a.kind == addonButton && a.button != nil {
 			if me, ok := e.(*event.MouseEvent); ok {
-				if a.button.Bounds().Contains(me.Position) || me.MouseType == event.MouseLeave {
+				if me.MouseType == event.MouseLeave {
+					a.button.Event(ctx, e)
+				} else if a.button.Bounds().Contains(me.Position) {
 					if a.button.Event(ctx, e) {
 						return true
 					}

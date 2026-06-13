@@ -456,15 +456,42 @@ func (c *comboboxContent) keyEvent(ev *event.KeyEvent) bool {
 	if ev.KeyType != event.KeyPress && ev.KeyType != event.KeyRepeat {
 		return false
 	}
-	switch {
-	case ev.Key == event.KeyBackspace:
+	opts := c.filtered()
+	n := len(opts)
+	switch ev.Key {
+	case event.KeyBackspace:
 		if c.query != "" {
 			c.query = c.query[:len(c.query)-1]
 			c.hovered = 0
 			c.SetNeedsRedraw(true)
 		}
 		return true
-	case ev.Rune != 0 && ev.Rune >= 0x20:
+	case event.KeyDown:
+		if n > 0 {
+			c.hovered = c.hovered%n + 1
+			c.SetNeedsRedraw(true)
+		}
+		return true
+	case event.KeyUp:
+		if n > 0 {
+			c.hovered--
+			if c.hovered <= 0 {
+				c.hovered = n
+			}
+			c.SetNeedsRedraw(true)
+		}
+		return true
+	case event.KeyEnter:
+		if c.hovered > 0 && c.hovered <= n {
+			c.owner.selectValue(opts[c.hovered-1].Value)
+		}
+		return true
+	case event.KeyEscape:
+		c.owner.open.Set(false)
+		c.owner.SetNeedsRedraw(true)
+		return true
+	}
+	if ev.Rune != 0 && ev.Rune >= 0x20 {
 		c.query += string(ev.Rune)
 		c.hovered = 0
 		c.SetNeedsRedraw(true)
