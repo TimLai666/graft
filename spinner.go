@@ -18,9 +18,10 @@ import (
 //
 // The gogpu/ui canvas has no rotation transform, so rather than rotate an
 // icon the spinner draws its arc directly and advances the start angle from
-// the accumulated frame time. A single-frame render (the offscreen golden
-// path) sees DeltaTime() == 0, so the golden is deterministic at rotation
-// phase 0 (leading cap at the top).
+// the accumulated frame time. The clock is advanced in Draw — not Layout,
+// which is not re-run every frame, so ticking there froze the spin. A
+// single-frame render (the offscreen golden path) sees DeltaTime() == 0, so
+// the golden is deterministic at rotation phase 0 (leading cap at the top).
 //
 // Default size is 16px; override with Size. The color is currentColor →
 // Foreground by default; override the token with ColorToken.
@@ -68,22 +69,29 @@ func (s *SpinnerWidget) resolvedTheme() *theme.Theme {
 	return CurrentTheme()
 }
 
-// Layout sizes the spinner to a square and advances the rotation clock by the
-// frame delta, keeping the animation pumping while mounted.
-func (s *SpinnerWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
-	if ctx != nil {
-		dt := ctx.DeltaTime()
-		if dt > 0 {
-			s.elapsed = (s.elapsed + dt) % metrics.Spinner.SpinPeriod
-			s.SetNeedsRedraw(true)
-		}
-		if sched, ok := ctx.(widget.AnimationScheduler); ok {
-			sched.ScheduleAnimationFrame()
-		}
-	}
+// Layout sizes the spinner to a square. The rotation clock is advanced in Draw
+// (Layout is not called every frame, so ticking here froze the spin).
+func (s *SpinnerWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	size := c.Constrain(geometry.Sz(s.size, s.size))
 	s.SetBounds(geometry.FromPointSize(s.Position(), size))
 	return size
+}
+
+// tickSpin advances the rotation clock by the frame delta and keeps the render
+// loop pumping while mounted. It is called from Draw, which runs on every
+// repaint (Layout does not), so the spin animates in a continuous-render app.
+func (s *SpinnerWidget) tickSpin(ctx widget.Context) {
+	if ctx == nil {
+		return
+	}
+	dt := ctx.DeltaTime()
+	if dt > 0 {
+		s.elapsed = (s.elapsed + dt) % metrics.Spinner.SpinPeriod
+		s.SetNeedsRedraw(true)
+	}
+	if sched, ok := ctx.(widget.AnimationScheduler); ok {
+		sched.ScheduleAnimationFrame()
+	}
 }
 
 // rotation returns the current rotation offset in radians (0 at phase start).
@@ -92,11 +100,14 @@ func (s *SpinnerWidget) rotation() float64 {
 	return frac * 2 * math.Pi
 }
 
-// Draw paints the rotating arc with round caps in the resolved color.
-func (s *SpinnerWidget) Draw(_ widget.Context, canvas widget.Canvas) {
+// Draw paints the rotating arc with round caps in the resolved color. It also
+// advances the rotation clock here (Draw runs every repaint; Layout does not),
+// so the spin runs regardless of render mode.
+func (s *SpinnerWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if !s.IsVisible() {
 		return
 	}
+	s.tickSpin(ctx)
 	th := s.resolvedTheme()
 	tok := th.Active()
 

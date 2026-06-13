@@ -22,10 +22,11 @@ import (
 // use the .Circle helper).
 //
 // The pulse is widget-driven (Report 2 §8): elapsed time accumulates from
-// ctx.DeltaTime() in Layout and the widget asks the framework to keep ticking
-// while it animates. A single-frame render (the offscreen golden path) sees
-// DeltaTime() == 0 on the first frame, so the golden is deterministic at the
-// pulse start (full opacity).
+// ctx.DeltaTime() in Draw — not Layout, which is not re-run every frame, so
+// ticking there froze the pulse — and the widget asks the framework to keep
+// ticking while it animates. A single-frame render (the offscreen golden path)
+// sees DeltaTime() == 0 on the first frame, so the golden is deterministic at
+// the pulse start (full opacity).
 type SkeletonWidget struct {
 	widget.WidgetBase
 
@@ -99,23 +100,31 @@ func (s *SkeletonWidget) cornerRadius(th *theme.Theme) float32 {
 	return th.RadiusMD()
 }
 
-// Layout sizes the skeleton to its explicit dimensions and advances the pulse
-// clock by the frame delta, keeping the animation pumping while mounted.
-func (s *SkeletonWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
-	if ctx != nil {
-		dt := ctx.DeltaTime()
-		if dt > 0 {
-			s.elapsed = (s.elapsed + dt) % metrics.Skeleton.PulsePeriod
-			s.SetNeedsRedraw(true)
-		}
-		// Keep the render loop ticking so the pulse continues.
-		if sched, ok := ctx.(widget.AnimationScheduler); ok {
-			sched.ScheduleAnimationFrame()
-		}
-	}
+// Layout sizes the skeleton to its explicit dimensions. The pulse clock is
+// advanced in Draw (Layout is not called every frame, so ticking here froze
+// the pulse).
+func (s *SkeletonWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	size := c.Constrain(geometry.Sz(s.w, s.h))
 	s.SetBounds(geometry.FromPointSize(s.Position(), size))
 	return size
+}
+
+// tickPulse advances the pulse clock by the frame delta and keeps the render
+// loop pumping while mounted. It is called from Draw, which runs on every
+// repaint (Layout does not), so the pulse animates in a continuous-render app.
+func (s *SkeletonWidget) tickPulse(ctx widget.Context) {
+	if ctx == nil {
+		return
+	}
+	dt := ctx.DeltaTime()
+	if dt > 0 {
+		s.elapsed = (s.elapsed + dt) % metrics.Skeleton.PulsePeriod
+		s.SetNeedsRedraw(true)
+	}
+	// Keep the render loop ticking so the pulse continues.
+	if sched, ok := ctx.(widget.AnimationScheduler); ok {
+		sched.ScheduleAnimationFrame()
+	}
 }
 
 // pulseOpacity returns the current pulse opacity (1 at the loop start/end,
@@ -136,11 +145,14 @@ func (s *SkeletonWidget) pulseOpacity() float32 {
 	return 1 - eased*(1-metrics.Skeleton.PulseMinOpacity)
 }
 
-// Draw paints the Accent fill at the current pulse opacity, rounded-md.
-func (s *SkeletonWidget) Draw(_ widget.Context, canvas widget.Canvas) {
+// Draw paints the Accent fill at the current pulse opacity, rounded-md. It
+// also advances the pulse clock here (Draw runs every repaint; Layout does
+// not), so the animation runs regardless of render mode.
+func (s *SkeletonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if !s.IsVisible() {
 		return
 	}
+	s.tickPulse(ctx)
 	th := s.resolvedTheme()
 	tok := th.Active()
 	fill := draw.MulAlpha(tok.Accent, s.pulseOpacity())

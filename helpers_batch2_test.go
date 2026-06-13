@@ -3,6 +3,7 @@ package graft_test
 import (
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/primitives"
+	"github.com/gogpu/ui/uitest"
 	"github.com/gogpu/ui/widget"
 )
 
@@ -20,4 +21,15 @@ func fixedWidthLoose(w float32) geometry.Constraints {
 // other batches at merge time.
 func widthBox(child widget.Widget, width float32) widget.Widget {
 	return primitives.VBox(child).Width(width).Padding(0)
+}
+
+// zeroDeltaContext returns a MockContext whose DeltaTime is 0, matching the
+// deterministic offscreen golden path (widget.NewContext before any BeginFrame).
+// Use it when drawing time-driven widgets (skeleton pulse, spinner spin) so the
+// animation stays pinned at phase 0 for spec assertions; the default
+// uitest.NewMockContext advances 16ms per frame.
+func zeroDeltaContext() *uitest.MockContext {
+	ctx := uitest.NewMockContext()
+	ctx.DeltaVal = 0
+	return ctx
 }

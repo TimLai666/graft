@@ -3,6 +3,7 @@ package graft_test
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/gogpu/ui/primitives"
 	"github.com/gogpu/ui/uitest"
@@ -26,7 +27,9 @@ func TestSpinnerSpec(t *testing.T) {
 		t.Errorf("spinner size = %vx%v, want 16x16", size.Width, size.Height)
 	}
 
-	canvas := uitest.DrawWidget(s)
+	// Draw with a zero-delta frame (the deterministic golden path) so the spin
+	// stays at rotation phase 0 (leading cap at the top).
+	canvas := uitest.DrawWidgetWithContext(s, zeroDeltaContext())
 	// The mock canvas implements ArcStroker, so the round-capped arc lands in
 	// StrokeArcStyleds.
 	if len(canvas.StrokeArcStyleds) != 1 {
@@ -81,6 +84,35 @@ func TestSpinnerSize(t *testing.T) {
 	size := s.Layout(nil, fixedWidthLoose(32))
 	if size.Width != 32 || size.Height != 32 {
 		t.Errorf("spinner size = %vx%v, want 32x32", size.Width, size.Height)
+	}
+}
+
+// TestSpinnerRotationAdvancesInDraw verifies the spin is driven by Draw, not
+// Layout. Layout is NOT re-run every frame in a continuous-render app (only
+// Draw is), so a rotation ticked only in Layout would freeze at phase 0. We
+// Layout ONCE, then draw two successive frames with a non-zero frame delta
+// WITHOUT re-laying-out, and assert the arc start angle changed. With the
+// pre-fix code (tick in Layout) both frames render at -pi/2 and this fails.
+func TestSpinnerRotationAdvancesInDraw(t *testing.T) {
+	alertForceLight(t)
+
+	s := graft.Spinner()
+	s.Layout(nil, fixedWidthLoose(16)) // single layout pass, as in a real app
+
+	ctx := uitest.NewMockContext()
+	ctx.DeltaVal = 250 * time.Millisecond // quarter turn per frame
+
+	first := uitest.DrawWidgetWithContext(s, ctx)
+	second := uitest.DrawWidgetWithContext(s, ctx)
+	if len(first.StrokeArcStyleds) != 1 || len(second.StrokeArcStyleds) != 1 {
+		t.Fatalf("expected 1 styled arc per draw, got %d then %d",
+			len(first.StrokeArcStyleds), len(second.StrokeArcStyleds))
+	}
+	a0 := first.StrokeArcStyleds[0].StartAngle
+	a1 := second.StrokeArcStyleds[0].StartAngle
+	if math.Abs(a0-a1) < 1e-6 {
+		t.Errorf("spin start angle did not advance across draw frames (both %.6f); "+
+			"the rotation must be ticked in Draw, not Layout", a0)
 	}
 }
 
