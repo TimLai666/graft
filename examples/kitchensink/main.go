@@ -586,6 +586,28 @@ func sheet() widget.Widget {
 			)).Width(360),
 		),
 
+		section("Item",
+			graft.ItemGroup(
+				graft.Item(
+					graft.ItemMedia(icons.Circle).Icon(),
+					graft.ItemContent(
+						graft.ItemTitle("Notifications"),
+						graft.ItemDescription("Configure how you receive notifications."),
+					),
+					graft.ItemActions(graft.Switch().Checked(true)),
+				).Outline().W(420),
+				graft.ItemSeparator(),
+				graft.Item(
+					graft.ItemMedia(icons.Search).Icon(),
+					graft.ItemContent(
+						graft.ItemTitle("Search"),
+						graft.ItemDescription("Find anything across your workspace."),
+					),
+					graft.ItemActions(graft.Kbd("Ctrl", "K")),
+				).Muted().W(420),
+			),
+		),
+
 		section("Aspect ratio",
 			graft.AspectRatio(16.0/9.0,
 				graft.Card(graft.CardContent(graft.MutedText("16:9 content area"))).W(320),
