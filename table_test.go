@@ -151,6 +151,51 @@ func TestTableFooterBackground(t *testing.T) {
 	}
 }
 
+// TestTableRowHover verifies a MouseMove over a body row paints that row's
+// hover:bg-muted/50 background, and that no hover background is drawn before
+// the pointer enters any body row.
+func TestTableRowHover(t *testing.T) {
+	tok, restore := tableForceLight(t)
+	defer restore()
+
+	tbl := sampleTable()
+	tbl.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(500, 1000)))
+
+	hoverColor := tok.Muted
+	hoverColor.A = metrics.Table.RowHoverAlpha
+
+	countHover := func(c *uitest.MockCanvas) int {
+		n := 0
+		for _, r := range c.Rects {
+			if r.Color == hoverColor {
+				n++
+			}
+		}
+		return n
+	}
+
+	// No hover background before any pointer movement.
+	if got := countHover(uitest.DrawWidget(tbl)); got != 0 {
+		t.Fatalf("hover background before hover: got %d want 0", got)
+	}
+
+	// Move the pointer into the first body row (just below the 40px header).
+	bounds := tbl.Bounds()
+	rowY := bounds.Min.Y + metrics.Table.HeadHeight + (2*metrics.Table.CellPad+20)/2
+	if !tbl.Event(uitest.NewMockContext(), uitest.MouseMove(bounds.Min.X+20, rowY)) {
+		t.Fatal("MouseMove over a body row was not handled")
+	}
+	if got := countHover(uitest.DrawWidget(tbl)); got != 1 {
+		t.Fatalf("hover background after hover: got %d want 1", got)
+	}
+
+	// Leaving the table clears the hover background.
+	tbl.Event(uitest.NewMockContext(), uitest.MouseLeave(0, 0))
+	if got := countHover(uitest.DrawWidget(tbl)); got != 0 {
+		t.Fatalf("hover background after leave: got %d want 0", got)
+	}
+}
+
 // TestGoldenTable renders the standard table light and dark.
 func TestGoldenTable(t *testing.T) {
 	gtest.GoldenLightDark(t, "table-basic", func() widget.Widget {
