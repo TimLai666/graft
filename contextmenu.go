@@ -103,6 +103,7 @@ func (c *ContextMenuWidget) openAt(ctx widget.Context, cursor geometry.Point) {
 	th := c.resolvedTheme()
 	panel := c.content.buildPanel(th)
 	panel.OnClose(func() { c.close(ctx) })
+	panel.OnActivate(func() { c.close(ctx) })
 
 	size := panel.ContentSize()
 	pos := c.placeAtCursor(cursor, size, ctx.WindowSize())
