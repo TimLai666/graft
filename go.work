@@ -1,0 +1,10 @@
+// Workspace so `go run ./examples/kitchensink` works from the repo root.
+// graft core stays a standalone module (no GPU/windowing deps); the example
+// is a separate module that adds gogpu/gogpu + ui/desktop. The workspace ties
+// them together for local development without polluting the library's go.mod.
+go 1.25.0
+
+use (
+	.
+	./examples/kitchensink
+)

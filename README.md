@@ -91,6 +91,20 @@ Colors are specified in OKLCH exactly as shadcn ships them. graft implements the
 - `metrics/` — every px constant from the shadcn spec, annotated with its source Tailwind classes
 - Golden-image tests render every component headlessly at 2x and compare pixel-for-pixel (`GRAFT_UPDATE_GOLDEN=1 go test ./...` to re-record)
 
+## Running the gallery
+
+`examples/kitchensink` shows every component in one scrollable window. It is a
+separate module (so the core library carries no GPU/windowing deps); a
+`go.work` at the repo root wires it in, so from the root:
+
+```sh
+go run ./examples/kitchensink            # interactive window
+go run ./examples/kitchensink -png sheet.png        # headless light sheet
+go run ./examples/kitchensink -png sheet.png -dark  # headless dark sheet
+```
+
+(Without the workspace, run it from inside the directory: `cd examples/kitchensink && go run .`)
+
 ## License
 
 MIT. Geist font © Vercel (OFL-1.1), Lucide icons (ISC), design system by [shadcn](https://ui.shadcn.com).
