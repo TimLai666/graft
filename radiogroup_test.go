@@ -144,6 +144,46 @@ func TestRadioGroupSingleSelection(t *testing.T) {
 	}
 }
 
+// TestRadioGroupSelectionRepaintsGroup verifies that selecting a new item
+// (uncontrolled, mouse) invalidates the whole group, not just the clicked
+// item — the previously selected item's dot must clear in dirty-region render
+// mode. Before the fix, choose() only invalidated the clicked item's rect, so
+// the old item's dot would persist as a ghost. We assert an InvalidateRect was
+// recorded that fully contains the previously selected item's bounds.
+func TestRadioGroupSelectionRepaintsGroup(t *testing.T) {
+	_, restore := radioForceLight(t)
+	defer restore()
+
+	a := graft.RadioGroupItem("a", "A")
+	b := graft.RadioGroupItem("b", "B")
+	g := graft.RadioGroup(a, b).Value("a")
+
+	// One context for the whole frame, as a real app uses (the group-wide
+	// invalidate closure captures the Layout-time ctx).
+	ctx := uitest.NewMockContext()
+	g.Layout(ctx, geometry.Loose(geometry.Sz(400, 400)))
+
+	aBounds := a.Bounds()
+
+	bc := b.Bounds().Center()
+	b.Event(ctx, uitest.Click(bc.X, bc.Y))
+	b.Event(ctx, uitest.Release(bc.X, bc.Y))
+
+	// Some recorded InvalidateRect must cover the deselected item A so its dot
+	// repaints (or be empty, which the framework treats as a full repaint).
+	covered := false
+	for _, r := range ctx.InvalidatedRects {
+		if r.IsEmpty() || (r.Contains(aBounds.Min) && r.Contains(geometry.Pt(aBounds.Max.X-0.01, aBounds.Max.Y-0.01))) {
+			covered = true
+			break
+		}
+	}
+	if !covered {
+		t.Fatalf("selecting B must invalidate a region covering deselected item A %v; got rects %v",
+			aBounds, ctx.InvalidatedRects)
+	}
+}
+
 // TestRadioGroupArrowKeys verifies arrow keys move the selection.
 func TestRadioGroupArrowKeys(t *testing.T) {
 	_, restore := radioForceLight(t)

@@ -22,6 +22,12 @@ type radioGroupCtl struct {
 	sig      state.Signal[string]
 	onChange func(string)
 	items    []*RadioGroupItemWidget
+
+	// invalidate repaints the whole group; set by the group's Layout. Selecting
+	// a different item must repaint the previously selected item too (its dot
+	// disappears), so a single-item InvalidateRect is not enough in
+	// dirty-region render mode.
+	invalidate func()
 }
 
 func (g *radioGroupCtl) selected() string {
@@ -38,6 +44,9 @@ func (g *radioGroupCtl) selectValue(v string) {
 	}
 	if g.onChange != nil {
 		g.onChange(v)
+	}
+	if g.invalidate != nil {
+		g.invalidate()
 	}
 }
 
@@ -111,6 +120,18 @@ func (g *RadioGroupWidget) applyTheme() {
 	for _, it := range g.ctl.items {
 		it.theme = g.theme
 	}
+}
+
+// Layout wires the group-wide invalidate (so selecting a new item repaints the
+// previously selected one) and delegates sizing to the embedded box.
+func (g *RadioGroupWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	g.ctl.invalidate = func() {
+		g.SetNeedsRedraw(true)
+		if ctx != nil {
+			ctx.InvalidateRect(g.Bounds())
+		}
+	}
+	return g.BoxWidget.Layout(ctx, c)
 }
 
 // Event intercepts arrow keys for selection movement when an item is focused,
