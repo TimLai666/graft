@@ -271,7 +271,10 @@ func (p *PaginationWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	}
 }
 
-// Event forwards mouse input to the buttons with pagination-local coordinates.
+// Event forwards mouse input to the button under the pointer with
+// pagination-local coordinates. Only the hit button receives the event: a
+// MousePress must press and focus exactly one button, not the whole row (the
+// shared-event broadcast pressed every button and left focus on the last one).
 func (p *PaginationWidget) Event(ctx widget.Context, e event.Event) bool {
 	me, ok := e.(*event.MouseEvent)
 	if !ok {
@@ -279,16 +282,14 @@ func (p *PaginationWidget) Event(ctx widget.Context, e event.Event) bool {
 	}
 	local := *me
 	local.Position = me.Position.Sub(p.Bounds().Min)
-	handled := false
-	for _, it := range p.items {
-		if it.button == nil {
+	for i := len(p.items) - 1; i >= 0; i-- {
+		it := p.items[i]
+		if it.button == nil || !it.button.Bounds().Contains(local.Position) {
 			continue
 		}
-		if it.button.Event(ctx, &local) {
-			handled = true
-		}
+		return it.button.Event(ctx, &local)
 	}
-	return handled
+	return false
 }
 
 // Children returns the page/prev/next buttons.
