@@ -119,9 +119,9 @@ func (s *SwitchWidget) IsFocusable() bool {
 	return s.IsVisible() && s.IsEnabled() && !s.disabled
 }
 
-// Layout sizes the track and ticks the thumb animation.
-func (s *SwitchWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
-	s.tickAnimation(ctx)
+// Layout sizes the track. The thumb animation is advanced in Draw (Layout is
+// not called every frame, so ticking here would freeze the animation).
+func (s *SwitchWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	sz := s.size()
 	size := c.Constrain(geometry.Sz(sz.TrackWidth, sz.TrackHeight))
 	s.SetBounds(geometry.FromPointSize(s.Position(), size))
@@ -129,7 +129,7 @@ func (s *SwitchWidget) Layout(ctx widget.Context, c geometry.Constraints) geomet
 }
 
 // Draw renders the track (shadow, fill, transparent border) and the thumb.
-func (s *SwitchWidget) Draw(_ widget.Context, canvas widget.Canvas) {
+func (s *SwitchWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if !s.IsVisible() {
 		return
 	}
@@ -140,6 +140,16 @@ func (s *SwitchWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	disabled := s.disabled
 	sz := s.size()
 	checked := s.IsChecked()
+
+	// Advance the toggle animation here (Draw runs every repaint; Layout does
+	// not, so ticking only in Layout left the thumb frozen while the track
+	// color — derived from `checked` — flipped). When no animation is running,
+	// snap the thumb to the current state so it always matches `checked`,
+	// regardless of render mode or whether the tween was driven.
+	s.tickAnimation(ctx)
+	if s.animCtrl == nil || !s.animCtrl.HasActive() {
+		s.progress = boolToProgress(checked)
+	}
 
 	// Track geometry centered in bounds.
 	track := geometry.NewRect(
