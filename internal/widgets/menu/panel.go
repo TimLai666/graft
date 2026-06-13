@@ -265,14 +265,11 @@ func (p *Panel) drawRadio(canvas widget.Canvas, th *theme.Theme, rect geometry.R
 	textColor = draw.Fade(textColor, disabled)
 
 	if e.Selected {
-		// Center the 8px dot in the 16px indicator slot at left-2.
+		// shadcn uses CircleIcon size-2 fill-current: a FILLED 8px dot. The
+		// lucide circle icon is only a stroked outline, so draw a filled
+		// circle directly, centered in the 16px indicator slot at left-2.
 		slotCenterX := rect.Min.X + m.IndicatorLeft + m.CheckSize/2
-		dotRect := geometry.NewRect(slotCenterX-m.RadioDotSize/2, rect.Center().Y-m.RadioDotSize/2, m.RadioDotSize, m.RadioDotSize)
-		if e.HasDot {
-			icon.Draw(canvas, e.DotIcon, dotRect, textColor)
-		} else {
-			canvas.DrawCircle(geometry.Pt(slotCenterX, rect.Center().Y), m.RadioDotSize/2, textColor)
-		}
+		canvas.DrawCircle(geometry.Pt(slotCenterX, rect.Center().Y), m.RadioDotSize/2, textColor)
 	}
 
 	labelRect := geometry.NewRect(rect.Min.X+m.InsetPadLeft, rect.Min.Y, rect.Max.X-(rect.Min.X+m.InsetPadLeft)-m.ItemPadX, rect.Height())
