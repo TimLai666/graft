@@ -23,6 +23,7 @@ import (
 
 	"github.com/gogpu/gogpu"
 	"github.com/gogpu/ui/app"
+	"github.com/gogpu/ui/core/scrollview"
 	"github.com/gogpu/ui/desktop"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/offscreen"
@@ -104,11 +105,11 @@ func runWindow(th *graft.Theme) {
 	if err := graft.Install(uiApp, th); err != nil {
 		log.Fatal(err)
 	}
-	// Do NOT hard-code the ScrollArea size: let it fill the framework-provided
-	// window constraints so it stays correct under HiDPI scaling and window
-	// resizes. Hard-coding logical px here mismatches the scaled coordinate
-	// space and pushes content into a corner with dead hit-testing.
-	uiApp.SetRoot(graft.ScrollArea(interactiveSheet()))
+	// Use gogpu/ui's core scrollview directly as the root (the pattern its own
+	// gallery example uses), styled with graft's shadcn scrollbar painter.
+	root := scrollview.New(interactiveSheet(),
+		scrollview.PainterOpt(graft.PaintersFor(th).Scrollbar))
+	uiApp.SetRoot(root)
 
 	if err := desktop.Run(gpuApp, uiApp); err != nil {
 		log.Fatal(err)

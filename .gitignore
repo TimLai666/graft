@@ -13,3 +13,6 @@ Thumbs.db
 # Regenerable reference dumps and golden-diff artifacts
 testdata/sheet-*.png
 testdata/golden/*.got.png
+
+# Runtime logs
+*.log
