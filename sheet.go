@@ -637,6 +637,45 @@ func SheetDescription(text string) *TypographyWidget {
 	return styled(text, metrics.SheetDescriptionFontSize, 400, metrics.SheetDescriptionLineHeight).Muted()
 }
 
+// SheetPreview renders the sheet exactly as it appears at runtime: a modal
+// frame of windowSize with the black@50% backdrop and the panel anchored
+// full-cross-axis to its edge (the layoutAnchored path, not the standalone
+// natural-size Layout). Use it for goldens, docs, and screenshots so the
+// edge-anchored, full-height appearance is captured rather than a detached
+// content box.
+func SheetPreview(content *SheetContentWidget, windowSize geometry.Size) Widget {
+	p := &sheetPreviewWidget{content: content, windowSize: windowSize}
+	p.SetVisible(true)
+	p.SetEnabled(true)
+	p.AddChild(content)
+	return p
+}
+
+type sheetPreviewWidget struct {
+	widget.WidgetBase
+	content    *SheetContentWidget
+	windowSize geometry.Size
+}
+
+func (p *sheetPreviewWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	size := c.Constrain(p.windowSize)
+	p.SetBounds(geometry.NewRect(0, 0, size.Width, size.Height))
+	p.content.layoutAnchored(ctx, size)
+	return size
+}
+
+func (p *sheetPreviewWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
+	if canvas == nil {
+		return
+	}
+	canvas.DrawRect(p.Bounds(), widget.RGBA(0, 0, 0, metrics.OverlayAlpha))
+	p.content.Draw(ctx, canvas)
+}
+
+func (p *sheetPreviewWidget) Event(widget.Context, event.Event) bool { return false }
+
+func (p *sheetPreviewWidget) Children() []widget.Widget { return []widget.Widget{p.content} }
+
 // Compile-time interface checks.
 var (
 	_ widget.Widget    = (*SheetWidget)(nil)
@@ -645,4 +684,5 @@ var (
 	_ widget.Widget    = (*SheetSectionWidget)(nil)
 	_ widget.Widget    = (*sheetTriggerWidget)(nil)
 	_ widget.Widget    = (*sheetOverlayWidget)(nil)
+	_ widget.Widget    = (*sheetPreviewWidget)(nil)
 )

@@ -172,14 +172,14 @@ func TestSheetTriggerOpens(t *testing.T) {
 	}
 }
 
-// TestGoldenSheet renders the right and left sheet content directly, light +
-// dark. Goldens render the SETTLED open state (slide offset zero).
+// TestGoldenSheet renders the sheet exactly as it appears at runtime — a
+// modal frame with the backdrop and the panel anchored full-height to its
+// edge — via SheetPreview. Goldens render the SETTLED open state (slide
+// offset zero), light + dark.
 func TestGoldenSheet(t *testing.T) {
 	build := func(side graft.SheetSide) func() widget.Widget {
 		return func() widget.Widget {
-			content := sheetDemoContent().Side(side)
-			// Pad the frame so the shadow + close ring are captured.
-			return primitives.VBox(content).Padding(24)
+			return graft.SheetPreview(sheetDemoContent().Side(side), geometry.Sz(640, 420))
 		}
 	}
 	gtest.GoldenLightDark(t, "sheet-right", build(graft.SheetRight))
