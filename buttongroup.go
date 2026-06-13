@@ -120,7 +120,9 @@ func (g *ButtonGroupWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 }
 
 // Event forwards mouse input to the button under the pointer with group-local
-// coordinates.
+// coordinates. Only the hit button receives the event: broadcasting a
+// MousePress to every segment pressed them all and left focus on the last one,
+// so a click anywhere in the group focused the wrong button.
 func (g *ButtonGroupWidget) Event(ctx widget.Context, e event.Event) bool {
 	me, ok := e.(*event.MouseEvent)
 	if !ok {
@@ -128,17 +130,16 @@ func (g *ButtonGroupWidget) Event(ctx widget.Context, e event.Event) bool {
 	}
 	local := *me
 	local.Position = me.Position.Sub(g.Bounds().Min)
-	handled := false
+	// Button bounds are group-local. Segments overlap by 1px (shared border);
+	// iterate front-to-back so the seam belongs to the earlier segment, the
+	// same edge the visible square owns.
 	for _, b := range g.buttons {
-		if b == nil {
+		if b == nil || !b.Bounds().Contains(local.Position) {
 			continue
 		}
-		// Translate per-button: button bounds are group-local.
-		if b.Event(ctx, &local) {
-			handled = true
-		}
+		return b.Event(ctx, &local)
 	}
-	return handled
+	return false
 }
 
 // Children returns the button segments.

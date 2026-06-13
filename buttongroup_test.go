@@ -97,6 +97,39 @@ func TestButtonGroupOuterBorder(t *testing.T) {
 	}
 }
 
+// TestButtonGroupClickFiresOnlyHitSegment verifies a click in one segment
+// fires only that segment's OnClick and focuses only that segment. Before the
+// hit-test fix, the group broadcast every mouse event to all segments, so a
+// MousePress pressed/focused every button (focus landing on the last one).
+func TestButtonGroupClickFiresOnlyHitSegment(t *testing.T) {
+	_, restore := buttonGroupForceLight(t)
+	defer restore()
+
+	var hits [3]int
+	b1 := graft.Button("One").OnClick(func() { hits[0]++ })
+	b2 := graft.Button("Two").OnClick(func() { hits[1]++ })
+	b3 := graft.Button("Three").OnClick(func() { hits[2]++ })
+	g := graft.ButtonGroup(b1, b2, b3)
+	g.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(600, 100)))
+
+	// Press inside the middle segment must focus only b2.
+	mid := b2.Bounds()
+	ctx := uitest.NewMockContext()
+	g.Event(ctx, uitest.Click(mid.Min.X+mid.Width()/2, mid.Min.Y+mid.Height()/2))
+	if ctx.FocusedWidget() != widget.Widget(b2) {
+		t.Fatalf("press focused wrong segment: got %v want b2", ctx.FocusedWidget())
+	}
+
+	// A full click on the middle segment fires only b2's OnClick.
+	uitest.SimulateClick(g, mid.Min.X+mid.Width()/2, mid.Min.Y+mid.Height()/2)
+	if hits[0] != 0 || hits[2] != 0 {
+		t.Fatalf("neighbor segments fired: hits=%v", hits)
+	}
+	if hits[1] != 1 {
+		t.Fatalf("middle segment OnClick count: got %d want 1", hits[1])
+	}
+}
+
 // TestGoldenButtonGroup renders a 3-button outline group light and dark.
 func TestGoldenButtonGroup(t *testing.T) {
 	build := func() widget.Widget {
