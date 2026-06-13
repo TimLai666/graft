@@ -19,12 +19,6 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/gogpu/gg/gpu" // enable GPU SDF acceleration (else every boundary falls back to CPU)
-
-	"github.com/gogpu/gogpu"
-	"github.com/gogpu/ui/app"
-	"github.com/gogpu/ui/core/scrollview"
-	"github.com/gogpu/ui/desktop"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/offscreen"
 	"github.com/gogpu/ui/primitives"
@@ -32,6 +26,7 @@ import (
 	"github.com/gogpu/ui/widget"
 
 	"github.com/TimLai666/graft"
+	"github.com/TimLai666/graft/graftapp"
 	"github.com/TimLai666/graft/icons"
 )
 
@@ -86,32 +81,13 @@ func renderPNG(th *graft.Theme, path string) {
 	log.Printf("wrote %s (%dx%d)", path, img.Bounds().Dx(), img.Bounds().Dy())
 }
 
-// runWindow opens the live, interactive gallery.
+// runWindow opens the live, interactive gallery via the graftapp launcher.
 func runWindow(th *graft.Theme) {
-	// Keep ContinuousRender on (the gogpu default). With it off, gogpu only
-	// repaints when something calls RequestRedraw — and this demo has no
-	// redraw driver, so widget state changes (clicks, toggles, hover) would
-	// never reach the screen, making everything look frozen/non-interactive.
-	gpuApp := gogpu.NewApp(gogpu.DefaultConfig().
-		WithTitle("graft — Kitchen Sink").
-		WithSize(1100, 900))
-
-	uiApp := app.New(
-		app.WithWindowProvider(gpuApp),
-		app.WithPlatformProvider(gpuApp),
-		app.WithEventSource(gpuApp.EventSource()),
-		app.WithTheme(th.AsUITheme()),
-	)
-	if err := graft.Install(uiApp, th); err != nil {
-		log.Fatal(err)
-	}
-	// Use gogpu/ui's core scrollview directly as the root (the pattern its own
-	// gallery example uses), styled with graft's shadcn scrollbar painter.
-	root := scrollview.New(interactiveSheet(),
-		scrollview.PainterOpt(graft.PaintersFor(th).Scrollbar))
-	uiApp.SetRoot(root)
-
-	if err := desktop.Run(gpuApp, uiApp); err != nil {
+	if err := graftapp.New().
+		Title("graft — Kitchen Sink").
+		Size(1100, 900).
+		Theme(th).
+		Run(interactiveSheet()); err != nil {
 		log.Fatal(err)
 	}
 }

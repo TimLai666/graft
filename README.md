@@ -4,7 +4,7 @@
 
 graft replicates shadcn/ui down to the token level: the same OKLCH CSS variables (copied verbatim), the same component anatomy and variants, the same Geist typography, the same theming workflow. If you know shadcn, you already know graft.
 
-> Status: early development. Foundation (theme system, fonts, icons, golden-test pipeline) is complete; Tier 1 components are landing.
+> Status: all components landed — 50+ shadcn components across every tier (form controls, overlays, navigation, data display, charts, command palette, sidebar, carousel, OTP). Each is golden-tested pixel-for-pixel against the shadcn spec.
 
 ## Why
 
@@ -18,11 +18,8 @@ package main
 import (
     "log"
 
-    "github.com/gogpu/gogpu"
-    "github.com/gogpu/ui/app"
-    "github.com/gogpu/ui/desktop"
-
     "github.com/TimLai666/graft"
+    "github.com/TimLai666/graft/graftapp"
 )
 
 func main() {
@@ -32,33 +29,33 @@ func main() {
         graft.Radius(10),            // --radius
     )
 
-    gpuApp := gogpu.NewApp(gogpu.DefaultConfig().WithTitle("App").WithSize(960, 640))
-    uiApp := app.New(
-        app.WithWindowProvider(gpuApp),
-        app.WithPlatformProvider(gpuApp),
-        app.WithEventSource(gpuApp.EventSource()),
-        app.WithTheme(th.AsUITheme()),
-    )
-    if err := graft.Install(uiApp, th); err != nil {
+    err := graftapp.New().
+        Title("App").
+        Size(960, 640).
+        Theme(th).
+        Run(graft.Card(
+            graft.CardHeader(
+                graft.CardTitle("Login to your account"),
+                graft.CardDescription("Enter your email below to login"),
+            ),
+            graft.CardContent(
+                graft.Input().Placeholder("m@example.com"),
+            ),
+            graft.CardFooter(
+                graft.Button("Login").Full(),
+            ),
+        ).W(384))
+    if err != nil {
         log.Fatal(err)
     }
-
-    uiApp.SetRoot(graft.Card(
-        graft.CardHeader(
-            graft.CardTitle("Login to your account"),
-            graft.CardDescription("Enter your email below to login"),
-        ),
-        graft.CardContent(
-            graft.Input().Placeholder("m@example.com"),
-        ),
-        graft.CardFooter(
-            graft.Button("Login").Full(),
-        ),
-    ).W(384))
-
-    log.Fatal(desktop.Run(gpuApp, uiApp))
 }
 ```
+
+`graftapp` is a thin launcher module that folds the gogpu window/event/render
+setup into one call. The core `graft` module stays free of GPU and windowing
+dependencies, so you can also embed graft components in a hand-wired
+`gogpu/ui` app or render them off-screen — see [`graft.Install`](graft.go) and
+[`graft.PaintersFor`](graft.go) for the manual path.
 
 ## Theming, the shadcn way
 
@@ -89,6 +86,7 @@ Colors are specified in OKLCH exactly as shadcn ships them. graft implements the
 - `icons/` — the Lucide icons shadcn components use (ISC), with a vendoring tool for more
 - `painters/` — shadcn-styled painters for raw gogpu/ui core widgets
 - `metrics/` — every px constant from the shadcn spec, annotated with its source Tailwind classes
+- `graftapp/` — one-call desktop launcher (a separate module, so the core library carries no GPU/windowing deps)
 - Golden-image tests render every component headlessly at 2x and compare pixel-for-pixel (`GRAFT_UPDATE_GOLDEN=1 go test ./...` to re-record)
 
 ## Running the gallery

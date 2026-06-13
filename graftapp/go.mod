@@ -1,10 +1,9 @@
-module github.com/TimLai666/graft/examples/kitchensink
+module github.com/TimLai666/graft/graftapp
 
 go 1.25.0
 
 require (
 	github.com/TimLai666/graft v0.0.0
-	github.com/TimLai666/graft/graftapp v0.0.0
 	github.com/gogpu/gg v0.48.8
 	github.com/gogpu/gogpu v0.41.9
 	github.com/gogpu/ui v0.1.29
@@ -24,6 +23,4 @@ require (
 	golang.org/x/text v0.38.0 // indirect
 )
 
-replace github.com/TimLai666/graft => ../..
-
-replace github.com/TimLai666/graft/graftapp => ../../graftapp
+replace github.com/TimLai666/graft => ..
