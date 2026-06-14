@@ -39,6 +39,19 @@ radius scale: sm=6 md=8 lg=10 xl=14, rounded-4xl≈26, rounded-full=pill.
 | accordion-trigger | rounded-lg py-2.5 text-sm font-medium | py10 fs14 fw500 | py16→10 |
 | badge | h-5 px-2 py-0.5 gap-1 rounded-4xl border text-xs font-medium | h20 px8 py2 r26 | radius →rounded-4xl(26) |
 
+## More controls / nav (measured 2026-06-14)
+| component | live key classes | live px | change vs graft |
+|---|---|---|---|
+| avatar | size-8 rounded-full | 32 | size 40→32 (verify graft default) |
+| toggle | h-7 min-w-7 px-2.5 gap-1 rounded-[min(md,12)] text-sm font-medium | h28 px10 r8 | h →28, px →10 |
+| toggle-group-item | h-8 min-w-8 px-2.5 rounded-lg text-sm font-medium | h32 px10 r10 | h →32, rounded-lg |
+| pagination-link | h-8 px-2.5 rounded-lg text-sm font-medium | h32 r10 | button-like h-8 rounded-lg |
+| table-head | h-10 px-2 font-medium | h40 px8 fs14 | h48→40, px→8 |
+| table-cell | p-2 | px8 py8 | py→8 px→8 |
+| kbd | h-5 min-w-5 gap-1 px-1 rounded-sm text-xs font-medium | h20 px4 r6 fs12 | (kbd) |
+| separator | 1px border-color | — | UNCHANGED |
+| breadcrumb | gap-1.5 text-sm | fs14 gap6 | ~UNCHANGED |
+
 ## Still to extract (overlays need open state): tooltip, dialog, popover,
 ## dropdown-menu item, select-content/item, context-menu, menubar, sheet,
 ## alert-dialog, hover-card, command. Plus: avatar, separator, kbd, skeleton,
