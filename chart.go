@@ -124,6 +124,14 @@ type ChartWidget struct {
 	showYAxis  bool
 	showLegend bool
 
+	// Polar shapes (pie/radial/radar) — zero value shapeCartesian keeps the
+	// line/bar/area renderer. See chart_polar.go.
+	shape       chartShape
+	slices      []ChartSlice // pie/radial values
+	donutInner  float32      // pie donut inner-radius fraction; <0 = full pie
+	polarMax    float64      // radial full-sweep value; NaN = max(values)
+	centerLabel string       // pie/donut/radial center text
+
 	width  float32
 	height float32 // 0 = derive from width via aspect-video
 
@@ -361,6 +369,23 @@ func (c *ChartWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	bounds := c.Bounds()
 	m := metrics.Chart
 
+	// Polar shapes have their own renderers (chart_polar.go); the cartesian
+	// grid/axis/series path below is skipped for them.
+	if c.shape != shapeCartesian {
+		switch c.shape {
+		case shapePie:
+			c.drawPie(canvas, th, tok, bounds)
+		case shapeRadial:
+			c.drawRadial(canvas, th, tok, bounds)
+		case shapeRadar:
+			c.drawRadar(canvas, th, tok, bounds)
+		}
+		if c.showLegend {
+			c.drawLegend(canvas, th, tok, bounds)
+		}
+		return
+	}
+
 	plot := c.plotArea(bounds)
 	if plot.Width() <= 0 || plot.Height() <= 0 {
 		return
@@ -594,21 +619,40 @@ func (c *ChartWidget) drawBars(canvas widget.Canvas, plot geometry.Rect, s Chart
 	}
 }
 
-// drawLegend renders the swatch+label row centered under the chart.
+// drawLegend renders the swatch+label row centered under the chart. Entries
+// come from the series (cartesian/radar) or the slices (pie/radial).
 func (c *ChartWidget) drawLegend(canvas widget.Canvas, th *theme.Theme, tok *theme.Tokens, bounds geometry.Rect) {
 	m := metrics.Chart
 	family := fonts.Family(m.AxisLabelWeight)
 
+	// Unify legend entries across cartesian series and polar slices.
+	var labels []string
+	var cols []widget.Color
+	if len(c.slices) > 0 {
+		for pos, s := range c.slices {
+			labels = append(labels, s.label)
+			cols = append(cols, s.resolveColor(tok, pos))
+		}
+	} else {
+		for pos, s := range c.series {
+			labels = append(labels, s.label)
+			cols = append(cols, s.resolveColor(tok, pos))
+		}
+	}
+	if len(labels) == 0 {
+		return
+	}
+
 	// Measure total width to center the row.
 	var total float32
-	widths := make([]float32, len(c.series))
-	for i, s := range c.series {
-		lw := canvas.MeasureText(s.label, m.AxisLabelFontSize, false)
+	widths := make([]float32, len(labels))
+	for i, lbl := range labels {
+		lw := canvas.MeasureText(lbl, m.AxisLabelFontSize, false)
 		widths[i] = lw
 		total += m.LegendSwatch + m.LegendSwatchTextGap + lw
 	}
-	if len(c.series) > 1 {
-		total += m.LegendGap * float32(len(c.series)-1)
+	if len(labels) > 1 {
+		total += m.LegendGap * float32(len(labels)-1)
 	}
 
 	rowY := bounds.Max.Y - m.LegendHeight
@@ -618,14 +662,13 @@ func (c *ChartWidget) drawLegend(canvas widget.Canvas, th *theme.Theme, tok *the
 	}
 	cy := rowY + m.LegendHeight/2
 
-	for pos, s := range c.series {
-		col := s.resolveColor(tok, pos)
+	for i, lbl := range labels {
 		sw := geometry.NewRect(x, cy-m.LegendSwatch/2, m.LegendSwatch, m.LegendSwatch)
-		canvas.DrawRoundRect(sw, col, m.LegendSwatchRadius)
+		canvas.DrawRoundRect(sw, cols[i], m.LegendSwatchRadius)
 		x += m.LegendSwatch + m.LegendSwatchTextGap
-		labelRect := geometry.NewRect(x, rowY, widths[pos], m.LegendHeight)
-		c.drawLabelFamily(canvas, family, s.label, labelRect, tok.MutedForeground, widget.TextAlignLeft)
-		x += widths[pos] + m.LegendGap
+		labelRect := geometry.NewRect(x, rowY, widths[i], m.LegendHeight)
+		c.drawLabelFamily(canvas, family, lbl, labelRect, tok.MutedForeground, widget.TextAlignLeft)
+		x += widths[i] + m.LegendGap
 	}
 }
 

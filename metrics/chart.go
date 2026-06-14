@@ -96,6 +96,58 @@ var Chart = struct {
 	// LegendTopGap is the vertical gap between the plot/X-axis band and the
 	// legend row (pt-3 = 12px).
 	LegendTopGap float32
+
+	// --- Polar charts (pie / donut / radial / radar) ---
+	//
+	// Pie, radial, and radar are drawn in a square polar plot inset by
+	// PolarPad on every side. There is no filled-wedge primitive on the base
+	// canvas, so wedges and rings are painted as thick StrokeArc bands (a
+	// stroke of width W centered on radius r fills the annulus [r-W/2, r+W/2];
+	// a full pie is W=outer centered on outer/2). Angles follow gg's screen
+	// convention used by the spinner: 0 at 3 o'clock, increasing clockwise,
+	// with the first slice/value starting at the top (-pi/2).
+
+	// PolarPad insets the square polar plot from the chart bounds on each side.
+	PolarPad float32
+
+	// PieDonutInner is the default donut inner-radius fraction (0 = full pie).
+	// shadcn's donut uses innerRadius ~60% of the outer radius.
+	PieDonutInner float32
+
+	// PieGapAngle is the angular gap between adjacent slices, in radians, so
+	// slices read as distinct wedges (shadcn pies have a thin separator).
+	PieGapAngle float64
+
+	// RadialTrackAlpha is the alpha applied to the Muted token for a radial
+	// bar's background track ring.
+	RadialTrackAlpha float32
+
+	// RadialBarThickness is the thickness of each radial bar ring, in px.
+	RadialBarThickness float32
+
+	// RadialBarGap is the gap between concentric radial rings, in px.
+	RadialBarGap float32
+
+	// RadialBarRadiusFrac is the fraction of the polar radius at which the
+	// outermost radial ring sits (the rings step inward from there).
+	RadialBarRadiusFrac float32
+
+	// RadarRings is the number of concentric grid rings drawn behind a radar
+	// (matching GridDivisions for visual consistency).
+	RadarRings int
+
+	// RadarFillAlpha is the alpha applied to a radar series color for its
+	// translucent polygon fill.
+	RadarFillAlpha float32
+
+	// RadarSpokeWidth is the stroke width of the radial axis spokes/grid rings.
+	RadarSpokeWidth float32
+
+	// RadarDotRadius is the radius of the vertex markers on a radar polygon.
+	RadarDotRadius float32
+
+	// PolarLabelGap is the gap between the outer radius and a polar axis label.
+	PolarLabelGap float32
 }{
 	AspectRatio:  16.0 / 9.0,
 	DefaultWidth: 460,
@@ -129,4 +181,20 @@ var Chart = struct {
 	LegendGap:           16,
 	LegendSwatchTextGap: 6,
 	LegendTopGap:        12,
+
+	PolarPad:      16,
+	PieDonutInner: 0.6,
+	PieGapAngle:   0.012,
+
+	RadialTrackAlpha:    1,
+	RadialBarThickness:  16,
+	RadialBarGap:        4,
+	RadialBarRadiusFrac: 0.95,
+
+	RadarRings:      4,
+	RadarFillAlpha:  0.25,
+	RadarSpokeWidth: 1,
+	RadarDotRadius:  3,
+
+	PolarLabelGap: 10,
 }
