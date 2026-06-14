@@ -129,6 +129,11 @@ var compareCases = []compareCase{
 	}},
 }
 
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
 func TestEmitCompareImages(t *testing.T) {
 	dir := os.Getenv(emitEnv)
 	if dir == "" {
@@ -138,7 +143,23 @@ func TestEmitCompareImages(t *testing.T) {
 	if err := graft.LoadAssets(); err != nil {
 		t.Fatalf("loading assets: %v", err)
 	}
+	// If a theme CSS is present (e.g. the extracted live ui.shadcn.com
+	// "theme-default" palette), render in THAT theme so the side-by-side is an
+	// apples-to-apples color comparison. Otherwise use the default Neutral.
 	th := graft.CurrentTheme()
+	if cssPath := filepath.Join(dir, "shadcn-theme.css"); fileExists(cssPath) {
+		css, err := os.ReadFile(cssPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		parsed, err := graft.ParseThemeCSS(string(css))
+		if err != nil {
+			t.Fatalf("parsing %s: %v", cssPath, err)
+		}
+		th = parsed
+		graft.SetTheme(th)
+		t.Logf("using theme from %s", cssPath)
+	}
 	th.SetMode(graft.ModeLight)
 
 	outDir := filepath.Join(dir, "graft")
