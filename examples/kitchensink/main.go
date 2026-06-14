@@ -480,6 +480,19 @@ func sheet() widget.Widget {
 			),
 		),
 
+		section("Drawer (bottom, settled open)",
+			graft.DrawerPreview(
+				graft.DrawerContent(
+					graft.DrawerHeader(
+						graft.DrawerTitle("Move Goal"),
+						graft.DrawerDescription("Set your daily activity goal."),
+					),
+					graft.DrawerFooter(graft.Button("Submit")),
+				),
+				geometry.Sz(560, 360),
+			),
+		),
+
 		section("Calendar & date picker",
 			row(
 				graft.Calendar().
