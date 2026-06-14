@@ -21,7 +21,7 @@ import (
 // Architecture decision: graft-OWNED. shadcn renders a w-fit flex of toggles
 // at spacing 0 — items butt together, share 1px borders (border-l-0 on
 // non-first items), and only the group's outer corners are rounded
-// (first:rounded-l-md, last:rounded-r-md). That per-corner-radius fusion is
+// (first:rounded-l-lg, last:rounded-r-lg). That per-corner-radius fusion is
 // exactly what draw.SquareCorners (DESIGN.md §5.4) exists for; no core widget
 // provides it, so the group and items are drawn here on internal/draw +
 // metrics/togglegroup.go.
@@ -174,7 +174,7 @@ func (g *ToggleGroupWidget) Layout(ctx widget.Context, cons geometry.Constraints
 		}
 	}
 
-	h := metrics.Toggle.Default.Height
+	h := metrics.ToggleGroup.ItemHeight
 	loose := cons.Loosen()
 	var x float32
 	for i, it := range g.items {
@@ -201,7 +201,7 @@ func (g *ToggleGroupWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 
 	// shadow-xs on the whole outline group.
 	if g.st.outline {
-		drawButtonShadow(canvas, bounds, th.RadiusMD(), g.st.disabled)
+		drawButtonShadow(canvas, bounds, th.RadiusLG(), g.st.disabled)
 	}
 
 	canvas.PushTransform(bounds.Min)
@@ -302,11 +302,11 @@ func (it *ToggleGroupItemWidget) contentWidth() float32 {
 	return w
 }
 
-// Layout sizes the segment: content + 2*px-3 (min-w-0 — no minimum), fixed
+// Layout sizes the segment: content + 2*px-2.5 (min-w-0 — no minimum), fixed
 // group height.
 func (it *ToggleGroupItemWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	w := it.contentWidth() + 2*metrics.ToggleGroup.ItemPadX
-	h := metrics.Toggle.Default.Height
+	h := metrics.ToggleGroup.ItemHeight
 	size := c.Constrain(geometry.Sz(w, h))
 	it.SetBounds(geometry.FromPointSize(it.Position(), size))
 	return size
@@ -338,7 +338,7 @@ func (it *ToggleGroupItemWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	th := it.st.th
 	tok := th.Active()
 	bounds := it.Bounds()
-	radius := th.RadiusMD()
+	radius := th.RadiusLG()
 	disabled := it.st.disabled
 	on := it.on()
 	hovered := (it.hovered || it.mouseDown) && !disabled

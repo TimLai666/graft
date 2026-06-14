@@ -21,11 +21,11 @@ import (
 // Architecture decision: graft-OWNED (same reasoning as Button — exact
 // content-driven width from real Geist advances requires owning Layout).
 //
-// Spec (docs/research/03-shadcn-pixel-spec.md "Toggle"): base rounded-md
+// Spec (compare/shadcn-spec.md "toggle"): base rounded-md
 // text-sm/500, hover bg-muted text-muted-foreground, on-state bg-accent
 // text-accent-foreground; default variant transparent, outline variant
-// 1px --input border + shadow-xs (hover bg-accent); sizes default h-9/min-w-9
-// px-2, sm h-8/min-w-8 px-1.5, lg h-10/min-w-10 px-2.5; icon 16.
+// 1px --input border + shadow-xs (hover bg-accent); sizes default h-7/min-w-7
+// px-2.5, sm h-8/min-w-8 px-1.5, lg h-10/min-w-10 px-2.5; icon 16.
 //
 //	graft.Toggle("Bold").Bind(boldSig)
 //	graft.Toggle("").Icon(icons.Bold).Outline().OnChange(func(on bool){ ... })

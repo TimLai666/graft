@@ -1,8 +1,7 @@
 package metrics
 
-// Toggle metrics transcribed from the shadcn new-york-v4 toggleVariants cva
-// (docs/research/03-shadcn-pixel-spec.md "Toggle + Toggle Group", quoted
-// verbatim there).
+// Toggle metrics transcribed from the current shadcn (radix-era) toggleVariants
+// cva (compare/shadcn-spec.md "toggle", measured 2026-06-14 from ui.shadcn.com).
 //
 // Base: "inline-flex items-center justify-center gap-2 rounded-md text-sm
 //        font-medium whitespace-nowrap transition-[color,box-shadow]
@@ -12,28 +11,28 @@ package metrics
 // Variants: default "bg-transparent";
 //           outline "border border-input bg-transparent shadow-xs
 //                    hover:bg-accent hover:text-accent-foreground".
-// Sizes: default "h-9 min-w-9 px-2", sm "h-8 min-w-8 px-1.5",
+// Sizes: default "h-7 min-w-7 px-2.5", sm "h-8 min-w-8 px-1.5",
 //        lg "h-10 min-w-10 px-2.5".
 // On-state fill is --accent.
 //
-// Radius routes through the theme (RadiusMD).
+// Radius routes through the theme (RadiusMD = 8px at the default --radius).
 
 // ToggleSize holds the px metrics of one toggleVariants size variant.
 type ToggleSize struct {
-	// Height is the fixed control height (h-9 = 36, h-8 = 32, h-10 = 40).
+	// Height is the fixed control height (h-7 = 28, h-8 = 32, h-10 = 40).
 	Height float32
 
-	// MinWidth is the minimum width (min-w-9 = 36, min-w-8 = 32,
+	// MinWidth is the minimum width (min-w-7 = 28, min-w-8 = 32,
 	// min-w-10 = 40), making an icon-only toggle a square.
 	MinWidth float32
 
-	// PadX is the horizontal padding (px-2 = 8, px-1.5 = 6, px-2.5 = 10).
+	// PadX is the horizontal padding (px-2.5 = 10, px-1.5 = 6).
 	PadX float32
 }
 
 // Toggle collects every px constant of the shadcn Toggle component.
 var Toggle = struct {
-	// Default is size "default": h-9 min-w-9 px-2.
+	// Default is size "default": h-7 min-w-7 px-2.5.
 	Default ToggleSize
 
 	// SM is size "sm": h-8 min-w-8 px-1.5.
@@ -61,7 +60,7 @@ var Toggle = struct {
 	// in the --input token.
 	BorderWidth float32
 }{
-	Default: ToggleSize{Height: 36, MinWidth: 36, PadX: 8},  // h-9 min-w-9 px-2
+	Default: ToggleSize{Height: 28, MinWidth: 28, PadX: 10}, // h-7 min-w-7 px-2.5
 	SM:      ToggleSize{Height: 32, MinWidth: 32, PadX: 6},  // h-8 min-w-8 px-1.5
 	LG:      ToggleSize{Height: 40, MinWidth: 40, PadX: 10}, // h-10 min-w-10 px-2.5
 
