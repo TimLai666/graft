@@ -27,15 +27,16 @@ func paginationForceLight(t *testing.T) (*theme.Tokens, func()) {
 	return th.Active(), func() { th.SetMode(prev) }
 }
 
-// TestPaginationLayoutHeight pins the row to the 36px button height.
+// TestPaginationLayoutHeight pins the row to the 32px default button height
+// (page/prev/next links are default-size buttons; h-8).
 func TestPaginationLayoutHeight(t *testing.T) {
 	_, restore := paginationForceLight(t)
 	defer restore()
 
 	p := graft.Pagination().Pages(5, 2)
 	size := p.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(600, 100)))
-	if size.Height != metrics.Button.Icon.Height {
-		t.Fatalf("height: got %v want %v", size.Height, metrics.Button.Icon.Height)
+	if size.Height != metrics.Button.Default.Height {
+		t.Fatalf("height: got %v want %v", size.Height, metrics.Button.Default.Height)
 	}
 	// 5 pages (≤7 → all shown) + Previous + Next = 7 buttons.
 	if got := len(p.Children()); got != 7 {

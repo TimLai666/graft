@@ -9,6 +9,7 @@ import (
 	"github.com/TimLai666/graft"
 	"github.com/TimLai666/graft/icons"
 	"github.com/TimLai666/graft/internal/gtest"
+	"github.com/TimLai666/graft/metrics"
 )
 
 // alertForceLight pins the shared theme to light mode for spec-test color
@@ -62,9 +63,9 @@ func TestAlertSpecChrome(t *testing.T) {
 	}
 }
 
-// TestAlertSpecHeight pins the alert height: py-3 padding (12px top+bottom =
-// 24px) plus the stacked title (20px) + row gap (2px) + description (20px) =
-// 66px for the two-row default.
+// TestAlertSpecHeight pins the alert height: py-2 padding (8px top+bottom =
+// 16px) plus the stacked title (20px) + row gap (2px) + description (20px) =
+// 58px for the two-row default.
 func TestAlertSpecHeight(t *testing.T) {
 	alertForceLight(t)
 	a := graft.Alert(
@@ -72,7 +73,7 @@ func TestAlertSpecHeight(t *testing.T) {
 		graft.AlertDescription("You can add components to your app."),
 	)
 	size := a.Layout(nil, fixedWidthLoose(360))
-	const want = 12 + 12 + 20 + 2 + 20
+	want := 2*metrics.Alert.PadY + metrics.Alert.TitleLineHeight + metrics.Alert.RowGap + metrics.Alert.DescLineHeight
 	if size.Height != want {
 		t.Errorf("alert height = %v, want %v", size.Height, want)
 	}

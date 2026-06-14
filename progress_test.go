@@ -10,9 +10,10 @@ import (
 
 	"github.com/TimLai666/graft"
 	"github.com/TimLai666/graft/internal/gtest"
+	"github.com/TimLai666/graft/metrics"
 )
 
-// TestProgressSpecTrack verifies the track: full width, 8px tall, Primary@20%
+// TestProgressSpecTrack verifies the track: full width, 4px tall, Primary@20%
 // fill at rounded-full.
 func TestProgressSpecTrack(t *testing.T) {
 	th := alertForceLight(t)
@@ -20,8 +21,8 @@ func TestProgressSpecTrack(t *testing.T) {
 
 	p := graft.Progress().Value(0)
 	size := p.Layout(nil, fixedWidthLoose(300))
-	if size.Width != 300 || size.Height != 8 {
-		t.Errorf("progress size = %vx%v, want 300x8", size.Width, size.Height)
+	if size.Width != 300 || size.Height != metrics.Progress.Height {
+		t.Errorf("progress size = %vx%v, want 300x%v", size.Width, size.Height, metrics.Progress.Height)
 	}
 
 	canvas := uitest.DrawWidget(p)

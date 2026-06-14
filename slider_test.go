@@ -30,13 +30,14 @@ func TestSliderSpecDefault(t *testing.T) {
 
 	mc := uitest.DrawWidget(s)
 
-	// Track: full-width 6px pill in muted, vertically centered (y=5..11).
+	// Track: full-width 4px pill in muted, vertically centered (y=4..8).
+	trackTop := metrics.Slider.Height/2 - metrics.Slider.TrackThickness/2
 	foundTrack := false
 	for _, rr := range mc.RoundRects {
 		if rr.Color == tok.Muted &&
 			approx(rr.Bounds.Min.X, 0) && approx(rr.Bounds.Width(), 200) &&
 			approx(rr.Bounds.Height(), metrics.Slider.TrackThickness) &&
-			approx(rr.Bounds.Min.Y, 5) && approx(rr.Radius, metrics.Slider.TrackRadius) {
+			approx(rr.Bounds.Min.Y, trackTop) && approx(rr.Radius, metrics.Slider.TrackRadius) {
 			foundTrack = true
 		}
 	}
@@ -44,7 +45,7 @@ func TestSliderSpecDefault(t *testing.T) {
 		t.Fatalf("track pill not drawn; roundrects: %+v", mc.RoundRects)
 	}
 
-	// Range: primary rect from 0 to the thumb center (8 + 0.5*184 = 100).
+	// Range: primary rect from 0 to the thumb center (6 + 0.5*188 = 100).
 	foundRange := false
 	for _, r := range mc.Rects {
 		if r.Color == tok.Primary && approx(r.Bounds.Min.X, 0) && approx(r.Bounds.Width(), 100) &&
@@ -59,11 +60,13 @@ func TestSliderSpecDefault(t *testing.T) {
 		t.Fatal("range must be clipped to the track pill (overflow-hidden)")
 	}
 
-	// Thumb: 8px-radius white circle at (100, 8) with a 1px primary border.
+	// Thumb: 6px-radius white circle at (100, 6) with a 1px primary border.
+	thumbR := metrics.Slider.ThumbSize / 2
+	cy := metrics.Slider.Height / 2
 	foundThumb := false
 	for _, c := range mc.Circles {
-		if c.Color == widget.ColorWhite && approx(c.Radius, 8) &&
-			approx(c.Center.X, 100) && approx(c.Center.Y, 8) {
+		if c.Color == widget.ColorWhite && approx(c.Radius, thumbR) &&
+			approx(c.Center.X, 100) && approx(c.Center.Y, cy) {
 			foundThumb = true
 		}
 	}
@@ -72,7 +75,7 @@ func TestSliderSpecDefault(t *testing.T) {
 	}
 	foundBorder := false
 	for _, c := range mc.StrokeCircles {
-		if c.Color == tok.Primary && approx(c.Radius, 7.5) && approx(c.StrokeWidth, 1) {
+		if c.Color == tok.Primary && approx(c.Radius, thumbR-metrics.Slider.ThumbBorderWidth/2) && approx(c.StrokeWidth, 1) {
 			foundBorder = true
 		}
 		if approx(c.StrokeWidth, metrics.SliderRingWidth) {
@@ -100,7 +103,7 @@ func TestSliderSpecHoverRing(t *testing.T) {
 	found := false
 	for _, c := range mc.StrokeCircles {
 		if c.Color == want && approx(c.StrokeWidth, metrics.SliderRingWidth) &&
-			approx(c.Radius, 8+metrics.SliderRingWidth/2) {
+			approx(c.Radius, metrics.Slider.ThumbSize/2+metrics.SliderRingWidth/2) {
 			found = true
 		}
 	}
@@ -138,7 +141,7 @@ func TestSliderSpecDisabled(t *testing.T) {
 	fadedWhite.A *= metrics.DisabledOpacity
 	foundThumb := false
 	for _, c := range mc.Circles {
-		if c.Color == fadedWhite && approx(c.Radius, 8) {
+		if c.Color == fadedWhite && approx(c.Radius, metrics.Slider.ThumbSize/2) {
 			foundThumb = true
 		}
 	}

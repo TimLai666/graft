@@ -71,7 +71,7 @@ func TestInputSpecEmptyLight(t *testing.T) {
 	laidOutInput(in)
 	canvas := uitest.DrawWidget(in)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	// Light mode: no background fill round-rect (transparent). Shadow layers
 	// are the only DrawRoundRects.
@@ -127,7 +127,7 @@ func TestInputSpecFocusedRing(t *testing.T) {
 	in.SetFocused(true)
 	canvas := uitest.DrawWidget(in)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	// 3px ring stroke in Ring @50%.
 	var ring *uitest.StrokeRoundRectCall

@@ -86,7 +86,7 @@ func TestTextareaSpecEmptyLight(t *testing.T) {
 	laidOutTextarea(ta, 300)
 	canvas := uitest.DrawWidget(ta)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	for _, rr := range canvas.RoundRects {
 		if rr.Color.A == 1 {
@@ -136,7 +136,7 @@ func TestTextareaSpecFocusedRing(t *testing.T) {
 	ta.SetFocused(true)
 	canvas := uitest.DrawWidget(ta)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	var ring *uitest.StrokeRoundRectCall
 	for idx := range canvas.StrokeRoundRects {

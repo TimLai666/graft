@@ -43,8 +43,8 @@ func TestBadgeDefaultSpec(t *testing.T) {
 	if pill.Color != tok.Primary {
 		t.Errorf("pill fill: got %v, want primary %v", pill.Color, tok.Primary)
 	}
-	if pill.Radius != th.RadiusFull() {
-		t.Errorf("pill radius: got %v, want full %v", pill.Radius, th.RadiusFull())
+	if pill.Radius != th.Radius4XL() {
+		t.Errorf("pill radius: got %v, want rounded-4xl %v", pill.Radius, th.Radius4XL())
 	}
 	if pill.Bounds != geometry.FromPointSize(geometry.Pt(0, 0), size) {
 		t.Errorf("pill bounds: got %v", pill.Bounds)
@@ -169,8 +169,8 @@ func TestBadgeFocusRing(t *testing.T) {
 			if st.Bounds != wantBounds {
 				t.Errorf("ring bounds: got %v, want %v", st.Bounds, wantBounds)
 			}
-			if st.Radius != th.RadiusFull()+1.5 {
-				t.Errorf("ring radius: got %v, want full+1.5", st.Radius)
+			if st.Radius != th.Radius4XL()+1.5 {
+				t.Errorf("ring radius: got %v, want rounded-4xl+1.5", st.Radius)
 			}
 		case 1:
 			border++

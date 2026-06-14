@@ -51,12 +51,12 @@ func TestButtonLayoutExactWidth(t *testing.T) {
 	b := graft.Button("Button")
 	size := uitest.LayoutWidget(b, 800, 600)
 
-	if size.Height != 36 {
-		t.Errorf("default height = %v, want 36 (h-9)", size.Height)
+	if size.Height != metrics.Button.Default.Height {
+		t.Errorf("default height = %v, want %v (h-8)", size.Height, metrics.Button.Default.Height)
 	}
-	wantW := textmetrics.Width("Geist Medium", 14, "Button") + 2*16
+	wantW := textmetrics.Width("Geist Medium", 14, "Button") + 2*metrics.Button.Default.PadX
 	if size.Width != wantW {
-		t.Errorf("width = %v, want %v (text + 2*px-4)", size.Width, wantW)
+		t.Errorf("width = %v, want %v (text + 2*px-2.5)", size.Width, wantW)
 	}
 }
 
@@ -67,7 +67,7 @@ func TestButtonSizes(t *testing.T) {
 		b    *graft.ButtonWidget
 		h    float32
 	}{
-		{"default", graft.Button("B"), 36},
+		{"default", graft.Button("B"), 32},
 		{"xs", graft.Button("B").XS(), 24},
 		{"sm", graft.Button("B").Sm(), 32},
 		{"lg", graft.Button("B").Lg(), 40},
@@ -111,8 +111,8 @@ func TestButtonDefaultDraw(t *testing.T) {
 	if fill.Color != tok.Primary {
 		t.Errorf("fill color = %v, want primary %v", fill.Color, tok.Primary)
 	}
-	if fill.Radius != 8 {
-		t.Errorf("fill radius = %v, want 8 (rounded-md)", fill.Radius)
+	if fill.Radius != graft.CurrentTheme().RadiusLG() {
+		t.Errorf("fill radius = %v, want %v (rounded-lg)", fill.Radius, graft.CurrentTheme().RadiusLG())
 	}
 	if fill.Bounds != b.Bounds() {
 		t.Errorf("fill bounds = %v, want %v", fill.Bounds, b.Bounds())
@@ -182,7 +182,7 @@ func TestButtonOutlineDraw(t *testing.T) {
 		t.Errorf("outline fill = %v, want background", fill.Color)
 	}
 
-	// 1px inside border in --border: stroke at Expand(-0.5), radius 7.5.
+	// 1px inside border in --border: stroke at Expand(-0.5), radius 9.5.
 	if len(c.StrokeRoundRects) != 1 {
 		t.Fatalf("strokes = %d, want 1 (border)", len(c.StrokeRoundRects))
 	}
@@ -196,8 +196,8 @@ func TestButtonOutlineDraw(t *testing.T) {
 	if border.Bounds != b.Bounds().Expand(-0.5) {
 		t.Errorf("border bounds = %v, want inset 0.5", border.Bounds)
 	}
-	if border.Radius != 7.5 {
-		t.Errorf("border radius = %v, want 7.5", border.Radius)
+	if want := graft.CurrentTheme().RadiusLG() - 0.5; border.Radius != want {
+		t.Errorf("border radius = %v, want %v", border.Radius, want)
 	}
 }
 
@@ -231,8 +231,8 @@ func TestButtonFocusRing(t *testing.T) {
 	if ring.StrokeWidth != 3 {
 		t.Errorf("ring width = %v, want 3", ring.StrokeWidth)
 	}
-	if ring.Radius != 8+1.5 {
-		t.Errorf("ring radius = %v, want 9.5", ring.Radius)
+	if want := graft.CurrentTheme().RadiusLG() + 1.5; ring.Radius != want {
+		t.Errorf("ring radius = %v, want %v", ring.Radius, want)
 	}
 	if ring.Bounds != b.Bounds().Expand(1.5) {
 		t.Errorf("ring bounds = %v, want Expand(1.5)", ring.Bounds)

@@ -129,7 +129,7 @@ func TestSelectTriggerFocused(t *testing.T) {
 	c := uitest.DrawWidgetWithContext(s, ctx)
 
 	bounds := s.Bounds()
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	// Expect a focus ring stroke: width 3 at Expand(1.5), radius+1.5,
 	// ring@0.5.

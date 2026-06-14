@@ -26,9 +26,10 @@ func TestCardSpec(t *testing.T) {
 	if size.Width != 360 {
 		t.Errorf("card width: got %v, want 360", size.Width)
 	}
-	// h = border 2*1 + py 2*24 + one 20px text line = 70.
-	if size.Height != 70 {
-		t.Errorf("card height: got %v, want 70", size.Height)
+	// h = border 2*1 + py 2*16 + one 20px text line = 54.
+	wantH := 2*metrics.CardBorderWidth + 2*metrics.CardPadY + 20
+	if size.Height != wantH {
+		t.Errorf("card height: got %v, want %v", size.Height, wantH)
 	}
 
 	cv := uitest.DrawWidget(card)
@@ -43,7 +44,7 @@ func TestCardSpec(t *testing.T) {
 	if fill.Radius != th.RadiusXL() {
 		t.Errorf("card radius: got %v, want rounded-xl %v", fill.Radius, th.RadiusXL())
 	}
-	if fill.Bounds != geometry.NewRect(0, 0, 360, 70) {
+	if fill.Bounds != geometry.NewRect(0, 0, 360, wantH) {
 		t.Errorf("card fill bounds: got %v", fill.Bounds)
 	}
 
@@ -54,7 +55,7 @@ func TestCardSpec(t *testing.T) {
 	if border.Color != tok.Border || border.StrokeWidth != 1 {
 		t.Errorf("border: got %+v, want 1px border token", border)
 	}
-	if border.Bounds != geometry.NewRect(0, 0, 360, 70).Expand(-0.5) {
+	if border.Bounds != geometry.NewRect(0, 0, 360, wantH).Expand(-0.5) {
 		t.Errorf("border bounds: got %v (inside border expected)", border.Bounds)
 	}
 	if border.Radius != th.RadiusXL()-0.5 {
@@ -79,12 +80,12 @@ func TestCardTitleTypography(t *testing.T) {
 		t.Fatalf("texts: got %d, want 2", len(cv.StyledTexts))
 	}
 	title, desc := cv.StyledTexts[0], cv.StyledTexts[1]
-	if title.Style.FontSize != 16 || title.Style.FontFamily != fonts.Family(600) {
-		t.Errorf("title: got %v/%q, want 16px %q (font-semibold)",
-			title.Style.FontSize, title.Style.FontFamily, fonts.Family(600))
+	if title.Style.FontSize != metrics.CardTitleFontSize || title.Style.FontFamily != fonts.Family(metrics.CardTitleFontWeight) {
+		t.Errorf("title: got %v/%q, want %vpx %q (font-medium)",
+			title.Style.FontSize, title.Style.FontFamily, metrics.CardTitleFontSize, fonts.Family(metrics.CardTitleFontWeight))
 	}
-	if title.Bounds.Height() != 16 {
-		t.Errorf("title line box: got %v, want 16 (leading-none)", title.Bounds.Height())
+	if title.Bounds.Height() != metrics.CardTitleLineHeight {
+		t.Errorf("title line box: got %v, want %v (leading-snug)", title.Bounds.Height(), metrics.CardTitleLineHeight)
 	}
 	if desc.Style.FontSize != 14 || desc.Style.FontFamily != fonts.Family(400) {
 		t.Errorf("description: got %v/%q, want 14px regular", desc.Style.FontSize, desc.Style.FontFamily)
@@ -92,9 +93,9 @@ func TestCardTitleTypography(t *testing.T) {
 	if desc.Style.Color != graft.CurrentTheme().Active().MutedForeground {
 		t.Errorf("description color: got %v, want muted-foreground", desc.Style.Color)
 	}
-	// gap-2 between title (16px line) and description.
-	if got := desc.Bounds.Min.Y - title.Bounds.Min.Y; got != 16+metrics.CardHeaderGap {
-		t.Errorf("title/description gap: got %v, want %v", got, 16+metrics.CardHeaderGap)
+	// gap-1 between title (22px leading-snug line) and description.
+	if got := desc.Bounds.Min.Y - title.Bounds.Min.Y; got != metrics.CardTitleLineHeight+metrics.CardHeaderGap {
+		t.Errorf("title/description gap: got %v, want %v", got, metrics.CardTitleLineHeight+metrics.CardHeaderGap)
 	}
 }
 
