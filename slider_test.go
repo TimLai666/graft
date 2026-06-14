@@ -3,6 +3,7 @@ package graft_test
 import (
 	"testing"
 
+	"github.com/gogpu/ui/event"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/primitives"
 	"github.com/gogpu/ui/state"
@@ -167,6 +168,88 @@ func TestSliderInteraction(t *testing.T) {
 	}
 	if observed != 50 {
 		t.Fatalf("OnChange observed %v, want 50", observed)
+	}
+}
+
+// TestSliderDragAtNonZeroOffset is a regression test for the drag bug where a
+// slider placed anywhere other than the window origin would jump to the end on
+// drag instead of tracking the cursor.
+//
+// Root cause (coordinate terms): on MousePress the wrapped core/slider captures
+// the pointer, after which gogpu's Window delivers MouseMove/Release DIRECTLY to
+// the core with RAW SCREEN coordinates, bypassing the wrapper's translation
+// (app/window.go capturedWidget.Event). The core derives the value from that
+// position against core.Bounds() (core/slider valueFromPosition). The wrapper
+// used to pin those bounds at (0,0), so a raw screen X (e.g. 345 for a slider at
+// x=200) was compared against a (0,0)-origin track and saturated to 100%.
+//
+// The fix keeps the core's bounds in SCREEN space between frames so the captured
+// path computes correctly, while Draw temporarily swaps to (0,0)-origin bounds so
+// the render is byte-identical. This test simulates the capture path by driving
+// the core's Event directly with raw screen coords, exactly as the Window does.
+func TestSliderDragAtNonZeroOffset(t *testing.T) {
+	lightTokens(t)
+
+	const offsetX float32 = 200
+	const width float32 = 200
+
+	sig := state.NewSignal(float32(0))
+	s := graft.Slider().Bind(sig).W(width) // range [0, 100], fixed 200px width
+
+	// Lay out the slider (sizes the core to width) then place it at a non-zero
+	// screen position, as a real layout inside a positioned parent would.
+	uitest.LayoutWidget(s, 400, metrics.Slider.Height)
+	s.SetBounds(geometry.FromPointSize(geometry.Pt(offsetX, 0),
+		geometry.Sz(width, metrics.Slider.Height)))
+	// Stamp the screen origin the way a parent's Draw pass does, then run Draw
+	// so the wrapper pins the core's bounds to that screen origin.
+	s.SetScreenOrigin(geometry.Pt(offsetX, 0))
+	uitest.DrawWidget(s)
+
+	// Reach the wrapped core/slider — the widget the Window captures on press.
+	core := s.Children()[0]
+
+	// Track geometry in SCREEN space: the core insets the track by the 10px
+	// thumb radius on each side (core/slider valueFromPosition / painter).
+	const thumbRadius float32 = 10
+	trackLeft := offsetX + thumbRadius          // 210
+	trackRight := offsetX + width - thumbRadius // 390
+	trackW := trackRight - trackLeft            // 180
+
+	// Press near the LEFT of the track via the wrapper (this is the real entry
+	// point for a press — it gets translated into the core's space). The wrapper
+	// receives PARENT-LOCAL coords; we model a parent at the window origin, so
+	// parent-local == screen coords here, and the slider sits at offsetX inside
+	// that parent (s.Bounds().Min == s.ScreenOrigin() == offsetX).
+	pressScreenX := trackLeft + 0.05*trackW // 5% across
+	ctx := uitest.NewMockContext()
+	if !s.Event(ctx, uitest.Click(pressScreenX, 8)) {
+		t.Fatal("press not consumed by slider")
+	}
+	if got := sig.Get(); got > 20 {
+		t.Fatalf("press near track-left set value too high: got %v, want <=20", got)
+	}
+
+	// Captured drag: the Window now delivers MouseMove straight to the CORE with
+	// RAW SCREEN coordinates. Drive that path directly.
+	const wantProgress float32 = 0.75
+	dragScreenX := trackLeft + wantProgress*trackW // 210 + 135 = 345
+	// The Window dispatches captured drags as MouseMove (app/window.go), so the
+	// raw event must carry the left button held for the core to treat it as a
+	// drag. uitest.MouseMove has no buttons, so build the event explicitly.
+	drag := event.NewMouseEvent(
+		event.MouseMove, event.ButtonNone, event.ButtonStateLeft,
+		geometry.Pt(dragScreenX, 8), geometry.Pt(dragScreenX, 8), event.ModNone,
+	)
+	if !core.Event(ctx, drag) {
+		t.Fatal("captured drag move not consumed by core")
+	}
+
+	want := wantProgress * 100 // 75
+	if got := sig.Get(); !approx(got, want) {
+		t.Fatalf("drag at non-zero offset: value = %v, want ~%v "+
+			"(pre-fix this saturates to 100 because raw screen X is compared "+
+			"against a (0,0)-origin track)", got, want)
 	}
 }
 

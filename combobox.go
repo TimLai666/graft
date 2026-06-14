@@ -441,18 +441,26 @@ func (c *comboboxContent) Draw(_ widget.Context, canvas widget.Canvas) {
 	}
 }
 
+// invalidate marks the popover dirty AND requests a frame. In event-driven
+// render mode SetNeedsRedraw alone won't repaint the filtered list / highlight
+// until another event fires, so pair it with ctx.InvalidateRect.
+func (c *comboboxContent) invalidate(ctx widget.Context) {
+	c.SetNeedsRedraw(true)
+	ctx.InvalidateRect(c.Bounds())
+}
+
 // Event handles typing into the search field, hover, and row selection.
 func (c *comboboxContent) Event(ctx widget.Context, e event.Event) bool {
 	switch ev := e.(type) {
 	case *event.KeyEvent:
-		return c.keyEvent(ev)
+		return c.keyEvent(ctx, ev)
 	case *event.MouseEvent:
 		return c.mouseEvent(ctx, ev)
 	}
 	return false
 }
 
-func (c *comboboxContent) keyEvent(ev *event.KeyEvent) bool {
+func (c *comboboxContent) keyEvent(ctx widget.Context, ev *event.KeyEvent) bool {
 	if ev.KeyType != event.KeyPress && ev.KeyType != event.KeyRepeat {
 		return false
 	}
@@ -463,13 +471,13 @@ func (c *comboboxContent) keyEvent(ev *event.KeyEvent) bool {
 		if c.query != "" {
 			c.query = c.query[:len(c.query)-1]
 			c.hovered = 0
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyDown:
 		if n > 0 {
 			c.hovered = c.hovered%n + 1
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyUp:
@@ -478,7 +486,7 @@ func (c *comboboxContent) keyEvent(ev *event.KeyEvent) bool {
 			if c.hovered <= 0 {
 				c.hovered = n
 			}
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyEnter:
@@ -494,7 +502,7 @@ func (c *comboboxContent) keyEvent(ev *event.KeyEvent) bool {
 	if ev.Rune != 0 && ev.Rune >= 0x20 {
 		c.query += string(ev.Rune)
 		c.hovered = 0
-		c.SetNeedsRedraw(true)
+		c.invalidate(ctx)
 		return true
 	}
 	return false
@@ -511,15 +519,15 @@ func (c *comboboxContent) mouseEvent(ctx widget.Context, ev *event.MouseEvent) b
 		}
 		if newHover != c.hovered {
 			c.hovered = newHover
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return inRow
 	case event.MouseLeave:
 		if c.hovered != 0 {
 			c.hovered = 0
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
-		return false
+		return true
 	case event.MouseRelease:
 		if ev.Button == event.ButtonLeft && inRow {
 			c.owner.selectValue(opt.Value)

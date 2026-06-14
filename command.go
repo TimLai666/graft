@@ -429,18 +429,27 @@ func (c *CommandWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	}
 }
 
+// invalidate marks the palette dirty AND requests a frame. SetNeedsRedraw
+// alone is not enough in event-driven render mode — without ctx.InvalidateRect
+// the typed query / navigation highlight would not visibly update until some
+// other event forced a repaint (mirrors internal/widgets/menu Panel.invalidate).
+func (c *CommandWidget) invalidate(ctx widget.Context) {
+	c.SetNeedsRedraw(true)
+	ctx.InvalidateRect(c.Bounds())
+}
+
 // Event handles keyboard input for the command palette.
 func (c *CommandWidget) Event(ctx widget.Context, e event.Event) bool {
 	switch ev := e.(type) {
 	case *event.KeyEvent:
-		return c.keyEvent(ev)
+		return c.keyEvent(ctx, ev)
 	case *event.MouseEvent:
 		return c.mouseEvent(ctx, ev)
 	}
 	return false
 }
 
-func (c *CommandWidget) keyEvent(ev *event.KeyEvent) bool {
+func (c *CommandWidget) keyEvent(ctx widget.Context, ev *event.KeyEvent) bool {
 	if ev.KeyType != event.KeyPress && ev.KeyType != event.KeyRepeat {
 		return false
 	}
@@ -451,13 +460,13 @@ func (c *CommandWidget) keyEvent(ev *event.KeyEvent) bool {
 		if c.query != "" {
 			c.query = c.query[:len(c.query)-1]
 			c.hovered = 0
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyDown:
 		if n > 0 {
 			c.hovered = c.hovered%n + 1
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyUp:
@@ -466,7 +475,7 @@ func (c *CommandWidget) keyEvent(ev *event.KeyEvent) bool {
 			if c.hovered <= 0 {
 				c.hovered = n
 			}
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return true
 	case event.KeyEnter:
@@ -484,7 +493,7 @@ func (c *CommandWidget) keyEvent(ev *event.KeyEvent) bool {
 	if ev.Rune != 0 && ev.Rune >= 0x20 {
 		c.query += string(ev.Rune)
 		c.hovered = 0
-		c.SetNeedsRedraw(true)
+		c.invalidate(ctx)
 		return true
 	}
 	return false
@@ -501,15 +510,15 @@ func (c *CommandWidget) mouseEvent(ctx widget.Context, ev *event.MouseEvent) boo
 		}
 		if newHover != c.hovered {
 			c.hovered = newHover
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
 		return inRow
 	case event.MouseLeave:
 		if c.hovered != 0 {
 			c.hovered = 0
-			c.SetNeedsRedraw(true)
+			c.invalidate(ctx)
 		}
-		return false
+		return true
 	case event.MouseRelease:
 		if ev.Button == event.ButtonLeft && inRow {
 			navItems := navigableItems(c.flatRows())
