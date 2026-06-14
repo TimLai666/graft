@@ -583,7 +583,7 @@ func (m *selectMenu) Draw(_ widget.Context, canvas widget.Canvas) {
 
 	// Surface (shadow, popover bg, border) + clip.
 	th := m.th
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // content: rounded-lg
 	tok := th.Active()
 	selectMenuSurface(canvas, bounds, radius, tok.Popover, tok.Border, met.BorderWidth)
 

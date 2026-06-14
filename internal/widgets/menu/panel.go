@@ -156,7 +156,7 @@ func (p *Panel) Draw(_ widget.Context, canvas widget.Canvas) {
 	tok := th.Active()
 	m := metrics.Menu
 	bounds := p.Bounds()
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // content: rounded-lg
 
 	// Surface: shadow-md, bg-popover, 1px border.
 	draw.Shadow(canvas, bounds, radius, metrics.ShadowMD)

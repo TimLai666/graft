@@ -367,15 +367,15 @@ func (c *comboboxContent) Draw(_ widget.Context, canvas widget.Canvas) {
 	}
 	th := c.resolvedTheme()
 	tok := th.Active()
-	rMD := th.RadiusMD()
+	rLG := th.RadiusLG() // content: rounded-lg
 	rSM := th.RadiusSM()
 	m := metrics.Combobox
 	bounds := c.Bounds()
 
 	// Surface.
-	draw.Shadow(canvas, bounds, rMD, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, rMD)
-	draw.InsideBorder(canvas, bounds, rMD, tok.Border, metrics.Popover.BorderWidth)
+	draw.Shadow(canvas, bounds, rLG, metrics.ShadowMD)
+	canvas.DrawRoundRect(bounds, tok.Popover, rLG)
+	draw.InsideBorder(canvas, bounds, rLG, tok.Border, metrics.Popover.BorderWidth)
 
 	// Search row: search icon + query/placeholder + bottom border.
 	searchIconRect := geometry.NewRect(
