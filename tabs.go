@@ -34,6 +34,23 @@ import (
 //	    graft.TabsContent("account", accountPanel),
 //	    graft.TabsContent("password", passwordPanel),
 //	).Value("account")
+//
+// Orientation defaults to horizontal (list above content, arrow Left/Right
+// navigation). Vertical() lays the list out as a left-hand column with the
+// content to its right and arrow Up/Down navigation.
+
+// TabsOrientation selects the Tabs axis (Radix data-[orientation]).
+type TabsOrientation int
+
+const (
+	// TabsHorizontal stacks the list above the content (default) and uses
+	// Left/Right arrows to move between triggers.
+	TabsHorizontal TabsOrientation = iota
+	// TabsVertical places the list as a left-hand column with the content
+	// to its right and uses Up/Down arrows to move between triggers.
+	TabsVertical
+)
+
 type TabsWidget struct {
 	widget.WidgetBase
 
@@ -48,7 +65,11 @@ type tabsState struct {
 	sig         state.Signal[string]
 	th          *theme.Theme
 	variantLine bool
+	orientation TabsOrientation
 }
+
+// vertical reports whether the tabs use the vertical orientation.
+func (st *tabsState) vertical() bool { return st.orientation == TabsVertical }
 
 // current returns the selected tab value.
 func (st *tabsState) current() string {
@@ -127,15 +148,33 @@ func (t *TabsWidget) Line() *TabsWidget {
 	return t
 }
 
+// Orientation sets the tabs axis (default TabsHorizontal).
+func (t *TabsWidget) Orientation(o TabsOrientation) *TabsWidget {
+	t.st.orientation = o
+	return t
+}
+
+// Vertical lays the list out as a left-hand column with the content to its
+// right (shorthand for Orientation(TabsVertical)).
+func (t *TabsWidget) Vertical() *TabsWidget {
+	t.st.orientation = TabsVertical
+	return t
+}
+
 // Theme pins a specific theme instead of the snapshotted current theme.
 func (t *TabsWidget) Theme(th *theme.Theme) *TabsWidget {
 	t.st.th = th
 	return t
 }
 
-// Layout stacks the list and the active content vertically with the root
-// gap (gap-2 = 8px); inactive contents collapse to zero.
+// Layout places the list and the active content. Horizontal stacks them
+// vertically with the root gap (gap-2 = 8px); vertical places the list on
+// the left and the content to its right with the same gap. Inactive
+// contents collapse to zero.
 func (t *TabsWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	if t.st.vertical() {
+		return t.layoutVertical(ctx, c)
+	}
 	loose := c.Loosen()
 	var y, maxW float32
 	for _, child := range t.items {
@@ -154,6 +193,65 @@ func (t *TabsWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry
 		}
 	}
 	size := c.Constrain(geometry.Sz(maxW, y))
+	t.SetBounds(geometry.FromPointSize(t.Position(), size))
+	return size
+}
+
+// layoutVertical places the list column on the left and the active content
+// to its right (root: "flex gap-2", content data-[orientation=vertical]).
+// The list sizes to its widest trigger; the content claims the remaining
+// width.
+func (t *TabsWidget) layoutVertical(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	loose := c.Loosen()
+
+	// Measure the list first so the content can claim the remaining width.
+	var listW, listH float32
+	var list *TabsListWidget
+	for _, child := range t.items {
+		if l, ok := child.(*TabsListWidget); ok {
+			list = l
+			sz := l.Layout(ctx, loose)
+			setChildBounds(l, geometry.FromPointSize(geometry.Pt(0, 0), sz))
+			listW, listH = sz.Width, sz.Height
+			break
+		}
+	}
+
+	contentX := listW
+	if list != nil {
+		contentX += metrics.Tabs.RootGap
+	}
+
+	// Content sits to the right of the list, taking the remaining width.
+	contentConstraints := loose
+	if loose.MaxWidth != geometry.Infinity {
+		rem := loose.MaxWidth - contentX
+		if rem < 0 {
+			rem = 0
+		}
+		contentConstraints = geometry.BoxConstraints(0, rem, 0, loose.MaxHeight)
+	}
+
+	maxX, maxY := listW, listH
+	for _, child := range t.items {
+		if _, ok := child.(*TabsListWidget); ok {
+			continue
+		}
+		sz := child.Layout(ctx, contentConstraints)
+		if sz.Height <= 0 && sz.Width <= 0 {
+			setChildBounds(child, geometry.NewRect(contentX, 0, 0, 0))
+			continue
+		}
+		setChildBounds(child, geometry.FromPointSize(geometry.Pt(contentX, 0), sz))
+		if r := contentX + sz.Width; r > maxX {
+			maxX = r
+		}
+		if sz.Height > maxY {
+			maxY = sz.Height
+		}
+	}
+
+	size := c.Constrain(geometry.Sz(maxX, maxY))
 	t.SetBounds(geometry.FromPointSize(t.Position(), size))
 	return size
 }
@@ -285,8 +383,13 @@ func (l *TabsListWidget) attach(root *TabsWidget) {
 }
 
 // Layout sizes the list to fit its triggers (w-fit) at the fixed 36px
-// height, placing each trigger inside the 3px padding.
+// height, placing each trigger inside the 3px padding. Vertical lists drop
+// the fixed height, stack the triggers in a column, and stretch each
+// trigger to the widest label so the active pill spans the column.
 func (l *TabsListWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	if l.st.vertical() {
+		return l.layoutVertical(ctx, c)
+	}
 	m := metrics.Tabs
 	innerH := m.ListHeight - 2*m.ListPadding
 	trigH := innerH - m.TriggerHeightInset
@@ -307,6 +410,43 @@ func (l *TabsListWidget) Layout(ctx widget.Context, c geometry.Constraints) geom
 	}
 
 	size := c.Constrain(geometry.Sz(x+m.ListPadding, m.ListHeight))
+	l.SetBounds(geometry.FromPointSize(l.Position(), size))
+	return size
+}
+
+// layoutVertical stacks the triggers in a column. The list width is the
+// widest trigger plus the 3px padding on each side; each trigger is
+// stretched to that inner width (flex-1) so the active pill spans the
+// column. The list height grows with the triggers (h-fit, no h-8).
+func (l *TabsListWidget) layoutVertical(ctx widget.Context, c geometry.Constraints) geometry.Size {
+	m := metrics.Tabs
+	trigH := m.ListHeight - 2*m.ListPadding - m.TriggerHeightInset
+	var gap float32
+	if l.st.variantLine {
+		gap = m.LineGap
+	}
+
+	// First pass: measure the widest trigger to size the column.
+	var innerW float32
+	for _, tr := range l.triggers {
+		sz := tr.Layout(ctx, geometry.Loose(geometry.Sz(geometry.Infinity, trigH)))
+		if sz.Width > innerW {
+			innerW = sz.Width
+		}
+	}
+
+	// Second pass: place each trigger stretched to the column width.
+	x := m.ListPadding
+	y := m.ListPadding
+	for i, tr := range l.triggers {
+		if i > 0 {
+			y += gap
+		}
+		tr.SetBounds(geometry.NewRect(x, y, innerW, trigH))
+		y += trigH
+	}
+
+	size := c.Constrain(geometry.Sz(innerW+2*m.ListPadding, y+m.ListPadding))
 	l.SetBounds(geometry.FromPointSize(l.Position(), size))
 	return size
 }
@@ -528,15 +668,27 @@ func (tr *TabsTriggerWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 		canvas.DrawText(tr.label, textRect, m.TriggerFontSize, col, m.TriggerFontWeight >= 600, widget.TextAlignCenter)
 	}
 
-	// Line-variant active underline: 2px bg-foreground, bottom -5px.
+	// Line-variant active indicator: 2px bg-foreground. Horizontal hangs
+	// 5px below the trigger; vertical hangs 5px to the right of the column
+	// (a left-rail indicator along the content edge).
 	if isActive && line {
-		underline := geometry.NewRect(
-			bounds.Min.X,
-			bounds.Max.Y+m.UnderlineDrop-m.UnderlineHeight,
-			bounds.Width(),
-			m.UnderlineHeight,
-		)
-		canvas.DrawRect(underline, draw.Fade(tok.Foreground, tr.disabled))
+		var indicator geometry.Rect
+		if tr.st.vertical() {
+			indicator = geometry.NewRect(
+				bounds.Max.X+m.UnderlineDrop-m.UnderlineHeight,
+				bounds.Min.Y,
+				m.UnderlineHeight,
+				bounds.Height(),
+			)
+		} else {
+			indicator = geometry.NewRect(
+				bounds.Min.X,
+				bounds.Max.Y+m.UnderlineDrop-m.UnderlineHeight,
+				bounds.Width(),
+				m.UnderlineHeight,
+			)
+		}
+		canvas.DrawRect(indicator, draw.Fade(tok.Foreground, tr.disabled))
 	}
 }
 
@@ -599,11 +751,32 @@ func (tr *TabsTriggerWidget) Event(ctx widget.Context, e event.Event) bool {
 		if ev.KeyType != event.KeyPress && ev.KeyType != event.KeyRepeat {
 			return false
 		}
+		// Arrow keys map per orientation: horizontal uses Left/Right,
+		// vertical uses Up/Down. Home/End jump to the edges in both.
+		vertical := tr.st.vertical()
 		switch ev.Key {
 		case event.KeyLeft:
+			if vertical {
+				return false
+			}
 			tr.list.moveFocus(ctx, tr, -1)
 			return true
 		case event.KeyRight:
+			if vertical {
+				return false
+			}
+			tr.list.moveFocus(ctx, tr, +1)
+			return true
+		case event.KeyUp:
+			if !vertical {
+				return false
+			}
+			tr.list.moveFocus(ctx, tr, -1)
+			return true
+		case event.KeyDown:
+			if !vertical {
+				return false
+			}
 			tr.list.moveFocus(ctx, tr, +1)
 			return true
 		case event.KeyHome:

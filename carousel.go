@@ -60,6 +60,9 @@ type CarouselWidget struct {
 	autoInterval time.Duration
 	autoElapsed  time.Duration
 
+	// loop wraps prev/next around the ends (shadcn opts.loop).
+	loop bool
+
 	// Animation state: offset is the normalized slide offset where 0.0
 	// means fully showing the current slide, -1.0 is one slide left,
 	// +1.0 is one slide right. During animation it tweens between the
@@ -134,6 +137,14 @@ func (c *CarouselWidget) AutoPlay(interval time.Duration) *CarouselWidget {
 	return c
 }
 
+// Loop wraps the carousel so Previous on the first slide goes to the last and
+// Next on the last goes to the first (shadcn opts={{ loop: true }}). The nav
+// buttons stay enabled at the ends.
+func (c *CarouselWidget) Loop(v bool) *CarouselWidget {
+	c.loop = v
+	return c
+}
+
 // Theme pins a specific theme instead of the snapshotted current theme.
 func (c *CarouselWidget) Theme(th *theme.Theme) *CarouselWidget {
 	c.th = th
@@ -164,13 +175,21 @@ func (c *CarouselWidget) slideCount() int {
 	return len(c.items)
 }
 
-// canPrev reports whether the Previous button is enabled (not at start).
+// canPrev reports whether the Previous button is enabled. With loop, it stays
+// enabled as long as there is more than one slide.
 func (c *CarouselWidget) canPrev() bool {
+	if c.loop {
+		return c.slideCount() > 1
+	}
 	return c.slideCount() > 0 && c.currentIndex() > 0
 }
 
-// canNext reports whether the Next button is enabled (not at end).
+// canNext reports whether the Next button is enabled. With loop, it stays
+// enabled as long as there is more than one slide.
 func (c *CarouselWidget) canNext() bool {
+	if c.loop {
+		return c.slideCount() > 1
+	}
 	return c.slideCount() > 0 && c.currentIndex() < c.slideCount()-1
 }
 
@@ -196,18 +215,28 @@ func (c *CarouselWidget) goTo(ctx widget.Context, idx int) {
 	}
 }
 
-// prev navigates to the previous slide.
+// prev navigates to the previous slide, wrapping to the last when loop is on.
 func (c *CarouselWidget) prev(ctx widget.Context) {
-	if c.canPrev() {
-		c.goTo(ctx, c.currentIndex()-1)
+	if !c.canPrev() {
+		return
 	}
+	idx := c.currentIndex() - 1
+	if idx < 0 && c.loop {
+		idx = c.slideCount() - 1
+	}
+	c.goTo(ctx, idx)
 }
 
-// next navigates to the next slide.
+// next navigates to the next slide, wrapping to the first when loop is on.
 func (c *CarouselWidget) next(ctx widget.Context) {
-	if c.canNext() {
-		c.goTo(ctx, c.currentIndex()+1)
+	if !c.canNext() {
+		return
 	}
+	idx := c.currentIndex() + 1
+	if idx >= c.slideCount() && c.loop {
+		idx = 0
+	}
+	c.goTo(ctx, idx)
 }
 
 // viewportRect returns the content area excluding nav button overflow.

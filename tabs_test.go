@@ -279,6 +279,158 @@ func TestTabsInteraction(t *testing.T) {
 	}
 }
 
+// buildTabsVertical returns a vertical three-trigger tabs tree.
+func buildTabsVertical() (*graft.TabsWidget, []*graft.TabsTriggerWidget) {
+	trs := []*graft.TabsTriggerWidget{
+		graft.TabsTrigger("account", "Account"),
+		graft.TabsTrigger("password", "Password"),
+		graft.TabsTrigger("more", "More").Disabled(true),
+	}
+	t := graft.Tabs(
+		graft.TabsList(trs...),
+		graft.TabsContent("account", graft.Text("Account content")),
+		graft.TabsContent("password", graft.Text("Password content")),
+	).Vertical()
+	return t, trs
+}
+
+func TestTabsVerticalLayout(t *testing.T) {
+	lightTokens(t)
+	tabs, trs := buildTabsVertical()
+	uitest.LayoutWidget(tabs, 800, 600)
+
+	m := metrics.Tabs
+	list := tabs.Children()[0].(*graft.TabsListWidget)
+	content := tabs.Children()[1].(*graft.TabsContentWidget)
+
+	// List sits at the left edge; content sits to its right past the gap.
+	if !approx(list.Bounds().Min.X, 0) {
+		t.Fatalf("list x = %v, want 0", list.Bounds().Min.X)
+	}
+	if !approx(content.Bounds().Min.X, list.Bounds().Max.X+m.RootGap) {
+		t.Fatalf("content x = %v, want %v (list right + gap)", content.Bounds().Min.X, list.Bounds().Max.X+m.RootGap)
+	}
+	// Content shares the top edge with the list (row layout, not stacked).
+	if !approx(content.Bounds().Min.Y, 0) {
+		t.Fatalf("content y = %v, want 0 (beside the list, not below)", content.Bounds().Min.Y)
+	}
+
+	// Triggers stack vertically: same x, increasing y, equal (stretched) width.
+	b0, b1 := trs[0].Bounds(), trs[1].Bounds()
+	if !approx(b0.Min.X, m.ListPadding) || !approx(b1.Min.X, m.ListPadding) {
+		t.Fatalf("triggers must share x %v: got %v, %v", m.ListPadding, b0.Min.X, b1.Min.X)
+	}
+	if !approx(b1.Min.Y, b0.Max.Y) {
+		t.Fatalf("second trigger y = %v, want %v (stacked under first)", b1.Min.Y, b0.Max.Y)
+	}
+	if !approx(b0.Width(), b1.Width()) {
+		t.Fatalf("triggers must stretch to equal width: %v vs %v", b0.Width(), b1.Width())
+	}
+	// Column width = widest trigger ("Password") + padding both sides.
+	if !approx(list.Bounds().Width(), b0.Width()+2*m.ListPadding) {
+		t.Fatalf("list width = %v, want trigger width + 2*padding (%v)", list.Bounds().Width(), b0.Width()+2*m.ListPadding)
+	}
+}
+
+func TestTabsVerticalKeyboard(t *testing.T) {
+	lightTokens(t)
+	sig := state.NewSignal("account")
+	trs := []*graft.TabsTriggerWidget{
+		graft.TabsTrigger("account", "Account"),
+		graft.TabsTrigger("password", "Password"),
+		graft.TabsTrigger("more", "More").Disabled(true),
+	}
+	tabs := graft.Tabs(
+		graft.TabsList(trs...),
+		graft.TabsContent("account", graft.Text("A")),
+		graft.TabsContent("password", graft.Text("B")),
+	).Bind(sig).Vertical()
+	uitest.LayoutWidget(tabs, 800, 600)
+
+	ctx := uitest.NewMockContext()
+	ctx.RequestFocus(trs[0]) // focus the first trigger
+
+	// Down moves to the next enabled trigger and activates it.
+	trs[0].Event(ctx, uitest.KeyPress(event.KeyDown, 0))
+	if sig.Get() != "password" {
+		t.Fatalf("ArrowDown: signal = %q, want password", sig.Get())
+	}
+	if !trs[1].IsFocused() {
+		t.Fatal("ArrowDown should move focus to the second trigger")
+	}
+
+	// Up moves back to the first.
+	trs[1].Event(ctx, uitest.KeyPress(event.KeyUp, 0))
+	if sig.Get() != "account" {
+		t.Fatalf("ArrowUp: signal = %q, want account", sig.Get())
+	}
+	if !trs[0].IsFocused() {
+		t.Fatal("ArrowUp should move focus to the first trigger")
+	}
+
+	// Down again, then Down wraps past the disabled trigger back to account.
+	trs[0].Event(ctx, uitest.KeyPress(event.KeyDown, 0))
+	if sig.Get() != "password" {
+		t.Fatalf("ArrowDown (2): signal = %q, want password", sig.Get())
+	}
+	trs[1].Event(ctx, uitest.KeyPress(event.KeyDown, 0))
+	if sig.Get() != "account" {
+		t.Fatalf("ArrowDown wrap: signal = %q, want account (disabled skipped)", sig.Get())
+	}
+
+	// Left/Right are no-ops in vertical orientation.
+	ctx.RequestFocus(trs[0])
+	if handled := trs[0].Event(ctx, uitest.KeyPress(event.KeyRight, 0)); handled {
+		t.Fatal("ArrowRight must not be handled in vertical orientation")
+	}
+	if sig.Get() != "account" {
+		t.Fatalf("ArrowRight in vertical changed selection to %q", sig.Get())
+	}
+
+	// Home/End still jump to the edges.
+	ctx.RequestFocus(trs[1])
+	trs[1].Event(ctx, uitest.KeyPress(event.KeyHome, 0))
+	if sig.Get() != "account" || !trs[0].IsFocused() {
+		t.Fatalf("Home: signal = %q focused0 = %v", sig.Get(), trs[0].IsFocused())
+	}
+}
+
+// TestTabsHorizontalKeyboardUnchanged guards that horizontal arrow keys keep
+// working (Left/Right move; Up/Down are no-ops).
+func TestTabsHorizontalKeyboardUnchanged(t *testing.T) {
+	lightTokens(t)
+	sig := state.NewSignal("account")
+	trs := []*graft.TabsTriggerWidget{
+		graft.TabsTrigger("account", "Account"),
+		graft.TabsTrigger("password", "Password"),
+	}
+	tabs := graft.Tabs(
+		graft.TabsList(trs...),
+		graft.TabsContent("account", graft.Text("A")),
+		graft.TabsContent("password", graft.Text("B")),
+	).Bind(sig)
+	uitest.LayoutWidget(tabs, 800, 600)
+
+	ctx := uitest.NewMockContext()
+	ctx.RequestFocus(trs[0])
+
+	// Right moves; Up/Down are no-ops in horizontal orientation.
+	trs[0].Event(ctx, uitest.KeyPress(event.KeyRight, 0))
+	if sig.Get() != "password" {
+		t.Fatalf("ArrowRight: signal = %q, want password", sig.Get())
+	}
+	if handled := trs[1].Event(ctx, uitest.KeyPress(event.KeyDown, 0)); handled {
+		t.Fatal("ArrowDown must not be handled in horizontal orientation")
+	}
+	if sig.Get() != "password" {
+		t.Fatalf("ArrowDown in horizontal changed selection to %q", sig.Get())
+	}
+	trs[1].Event(ctx, uitest.KeyPress(event.KeyLeft, 0))
+	if sig.Get() != "account" {
+		t.Fatalf("ArrowLeft: signal = %q, want account", sig.Get())
+	}
+}
+
 func TestGoldenTabs(t *testing.T) {
 	build := func(line bool) func() widget.Widget {
 		return func() widget.Widget {
@@ -293,6 +445,13 @@ func TestGoldenTabs(t *testing.T) {
 		tabs, trs := buildTabs(false)
 		uitest.LayoutWidget(tabs, 800, 600)
 		trs[1].Event(uitest.NewMockContext(), uitest.FocusGained())
+		return primitives.Box(tabs).Padding(16)
+	})
+}
+
+func TestGoldenTabsVertical(t *testing.T) {
+	gtest.GoldenLightDark(t, "tabs-vertical", func() widget.Widget {
+		tabs, _ := buildTabsVertical()
 		return primitives.Box(tabs).Padding(16)
 	})
 }
