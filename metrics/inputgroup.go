@@ -4,16 +4,16 @@ package metrics
 // (shadcn/ui input-group), which shares the Input chrome but hosts a borderless
 // inner field plus leading/trailing addons:
 //
-//	root  "flex h-9 w-full rounded-md border border-input shadow-xs
+//	root  "flex h-8 w-full rounded-lg border border-input shadow-xs
 //	       dark:bg-input/30" (same focus/invalid recipe as Input)
 //	addon "flex items-center gap-2 text-muted-foreground [&_svg]:size-4
 //	       [&_svg]:text-muted-foreground" with px-3 edge padding
 //	input "borderless bg-transparent" filling the remaining space.
 //
-// Radius routes through the theme (rounded-md → t.RadiusMD()); only fixed
+// Radius routes through the theme (rounded-lg → t.RadiusLG()); only fixed
 // literals live here. The package is pure data with no imports.
 var InputGroup = struct {
-	// Height is the container height in px (h-9 → 36).
+	// Height is the container height in px (h-8 → 32).
 	Height float32
 
 	// PadX is the horizontal edge padding before/after addons and text in px
@@ -42,7 +42,7 @@ var InputGroup = struct {
 	// (dark:bg-input/30 → 0.30).
 	DarkFillAlpha float32
 }{
-	Height:        36,
+	Height:        32,
 	PadX:          12,
 	Gap:           8,
 	IconSize:      16,

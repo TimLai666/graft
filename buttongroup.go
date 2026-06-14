@@ -56,8 +56,9 @@ func (g *ButtonGroupWidget) Theme(th *theme.Theme) *ButtonGroupWidget {
 	return g
 }
 
-// radius returns the group's outer corner radius (rounded-md).
-func (g *ButtonGroupWidget) radius() float32 { return g.theme.RadiusMD() }
+// radius returns the group's outer corner radius (rounded-lg, matching the
+// child buttons' new rounded-lg corners).
+func (g *ButtonGroupWidget) radius() float32 { return g.theme.RadiusLG() }
 
 // Layout places the buttons edge-to-edge with a −1px overlap and sizes the
 // group to their combined width and shared height.

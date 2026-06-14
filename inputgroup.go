@@ -265,7 +265,7 @@ func (g *InputGroupWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	tok := th.Active()
 	dark := th.IsDark()
 	bounds := g.Bounds()
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // group chrome: rounded-lg (mirrors Input)
 	disabled := g.disabled
 
 	if !disabled {

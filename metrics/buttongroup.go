@@ -10,8 +10,8 @@ package metrics
 //	overlapping −1px, only the first/last outer corners rounded (rounded-md =
 //	8px via the theme), divider lines in the Border token.
 //
-// Radius routes through the theme (rounded-md → t.RadiusMD()); only fixed
-// literals live here.
+// Radius routes through the theme; the group's outer corners follow the child
+// buttons, now rounded-lg (→ t.RadiusLG()). Only fixed literals live here.
 var ButtonGroup = struct {
 	// Overlap is the negative horizontal gap in px applied between adjacent
 	// buttons so their 1px borders coincide into one shared divider.

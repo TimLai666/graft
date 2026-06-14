@@ -310,15 +310,15 @@ func (c *CommandWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	}
 	th := c.resolvedTheme()
 	tok := th.Active()
-	rMD := th.RadiusMD()
+	rLG := th.RadiusLG() // content: rounded-lg (mirrors combobox/popover surface)
 	rSM := th.RadiusSM()
 	m := metrics.Command
 	bounds := c.Bounds()
 
 	// Surface: shadow + popover bg + border.
-	draw.Shadow(canvas, bounds, rMD, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, rMD)
-	draw.InsideBorder(canvas, bounds, rMD, tok.Border, m.SeparatorWidth)
+	draw.Shadow(canvas, bounds, rLG, metrics.ShadowMD)
+	canvas.DrawRoundRect(bounds, tok.Popover, rLG)
+	draw.InsideBorder(canvas, bounds, rLG, tok.Border, m.SeparatorWidth)
 
 	// -- Search row --
 	searchIconRect := geometry.NewRect(

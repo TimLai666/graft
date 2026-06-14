@@ -69,7 +69,7 @@ func AlertDialogCancel(label string, onClick func()) *AlertDialogButtonWidget {
 // AlertDialogButtonWidget is a minimal shadcn-styled button used by the
 // AlertDialog footer (default + outline variants). It exists only because the
 // shared Button widget lives in another batch; it follows the same metrics
-// (h36, px16, radius MD, font 14/500, shadow-xs on outline) and hover math.
+// (h32, px10, radius LG, font 14/500, shadow-xs on outline) and hover math.
 type AlertDialogButtonWidget struct {
 	widget.WidgetBase
 
@@ -106,13 +106,13 @@ func (b *AlertDialogButtonWidget) resolvedTheme() *theme.Theme {
 	return CurrentTheme()
 }
 
-// alertButtonHeight is shadcn's default button height (h-9 = 36px).
-const alertButtonHeight float32 = 36
+// alertButtonHeight is shadcn's default button height (h-8 = 32px).
+var alertButtonHeight = metrics.Button.Default.Height
 
-// alertButtonPadX is the default button horizontal padding (px-4 = 16px).
-const alertButtonPadX float32 = 16
+// alertButtonPadX is the default button horizontal padding (px-2.5 = 10px).
+var alertButtonPadX = metrics.Button.Default.PadX
 
-// Layout sizes the button: text advance + 2*padX wide, fixed 36px tall.
+// Layout sizes the button: text advance + 2*padX wide, fixed 32px tall.
 func (b *AlertDialogButtonWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
 	ts := b.label.Layout(ctx, geometry.Loose(geometry.Sz(10000, 10000)))
 	size := c.Constrain(geometry.Sz(ts.Width+2*alertButtonPadX, alertButtonHeight))
@@ -128,7 +128,7 @@ func (b *AlertDialogButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas)
 	th := b.resolvedTheme()
 	tok := th.Active()
 	bounds := b.Bounds()
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // button: rounded-lg
 
 	if b.primary {
 		fill := tok.Primary
