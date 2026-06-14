@@ -12,7 +12,7 @@ import (
 )
 
 // CardWidget is shadcn's Card: a rounded-xl surface in the card token with
-// a 1px border, vertical padding 24, internal gap 24, and shadow-sm.
+// a 1px border, vertical padding 16, internal gap 16, and shadow-sm.
 //
 // Architecture: graft-owned widget. Layout composes primitives.Box for the
 // section stack, but the card chrome (background, radius, border, shadow)
@@ -124,7 +124,7 @@ func (c *CardWidget) Event(ctx widget.Context, e event.Event) bool {
 func (c *CardWidget) Children() []widget.Widget { return []widget.Widget{c.box} }
 
 // CardSectionWidget is a card section (header, content, or footer): a thin
-// named wrapper over primitives.Box carrying the px-24 shadcn paddings.
+// named wrapper over primitives.Box carrying the px-16 shadcn paddings.
 // All Box builder methods (Gap, CrossAlign, ...) remain available.
 type CardSectionWidget struct {
 	*primitives.BoxWidget
@@ -136,7 +136,7 @@ type CardActionWidget struct {
 	*primitives.BoxWidget
 }
 
-// CardHeader creates the header section: px 24, vertical gap 8 between
+// CardHeader creates the header section: px 16, vertical gap 4 between
 // title and description. If a CardAction child is present it is laid out
 // top-right with the remaining children stacked to its left.
 func CardHeader(children ...Widget) *CardSectionWidget {
@@ -167,7 +167,7 @@ func CardHeader(children ...Widget) *CardSectionWidget {
 	}
 }
 
-// CardTitle creates the card title: 16px / weight 600 / leading-none, in
+// CardTitle creates the card title: 16px / weight 500 / leading-snug, in
 // the card-foreground token.
 func CardTitle(text string) *TypographyWidget {
 	return styled(text, metrics.CardTitleFontSize, metrics.CardTitleFontWeight, metrics.CardTitleLineHeight).
@@ -185,7 +185,7 @@ func CardAction(child Widget) *CardActionWidget {
 	return &CardActionWidget{primitives.Box(child)}
 }
 
-// CardContent creates the content section: px 24.
+// CardContent creates the content section: px 16.
 func CardContent(children ...Widget) *CardSectionWidget {
 	return &CardSectionWidget{
 		primitives.VBox(children...).
@@ -194,7 +194,7 @@ func CardContent(children ...Widget) *CardSectionWidget {
 	}
 }
 
-// CardFooter creates the footer section: a horizontal row, px 24, items
+// CardFooter creates the footer section: a horizontal row, px 16, items
 // centered. Use the inherited Gap method for spacing between actions.
 func CardFooter(children ...Widget) *CardSectionWidget {
 	return &CardSectionWidget{

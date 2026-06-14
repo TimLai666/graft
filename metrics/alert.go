@@ -1,12 +1,11 @@
 package metrics
 
-// Alert holds the exact pixel constants for the shadcn Alert composite
-// (docs/research/03-shadcn-pixel-spec.md §5 "Alert").
+// Alert holds the exact pixel constants for the shadcn Alert composite.
 //
-// Source (new-york-v4 alertVariants base):
+// Source (current ui.shadcn.com live alertVariants base, radix era):
 //
 //	"relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg
-//	 border px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr]
+//	 border px-2.5 py-2 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr]
 //	 has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current"
 //
 // Title: "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight"
@@ -17,10 +16,10 @@ package metrics
 // The radius routes through the theme (rounded-lg → t.RadiusLG()); only the
 // literal px values live here.
 var Alert = struct {
-	// PadX is the horizontal padding in px (px-4 = 16px).
+	// PadX is the horizontal padding in px (px-2.5 = 10px).
 	PadX float32
 
-	// PadY is the vertical padding in px (py-3 = 12px).
+	// PadY is the vertical padding in px (py-2 = 8px).
 	PadY float32
 
 	// BorderWidth is the alert border width in px (border = 1px).
@@ -69,8 +68,8 @@ var Alert = struct {
 	// (*:data-[slot=alert-description]:text-destructive/90 = 90%).
 	DescDestructiveAlpha float32
 }{
-	PadX:                 16,
-	PadY:                 12,
+	PadX:                 10,
+	PadY:                 8,
 	BorderWidth:          1,
 	RowGap:               2,
 	IconSize:             16,

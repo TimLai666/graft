@@ -2,10 +2,11 @@ package metrics
 
 // Badge metrics.
 //
-// Source: shadcn new-york-v4 badge.tsx badgeVariants cva base:
+// Source: current ui.shadcn.com live badge.tsx badgeVariants cva base
+// (radix era, newer than new-york-v4):
 //
 //	"inline-flex w-fit shrink-0 items-center justify-center gap-1
-//	 overflow-hidden rounded-full border border-transparent px-2 py-0.5
+//	 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5
 //	 text-xs font-medium whitespace-nowrap transition-[color,box-shadow]
 //	 focus-visible:border-ring focus-visible:ring-[3px]
 //	 focus-visible:ring-ring/50 aria-invalid:border-destructive
@@ -24,7 +25,8 @@ package metrics
 //	ghost:       "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground"
 //	link:        "text-primary underline-offset-4 [a&]:hover:underline"
 //
-// The radius is rounded-full (pill), drawn with the theme RadiusFull.
+// The radius is rounded-4xl (near-pill ≈ 26px at the default --radius of
+// 10), drawn with the theme Radius4XL.
 const (
 	// BadgePadX is the horizontal padding in px (px-2).
 	BadgePadX float32 = 8

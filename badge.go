@@ -13,15 +13,15 @@ import (
 	"github.com/TimLai666/graft/theme"
 )
 
-// BadgeWidget is shadcn's Badge: a pill-shaped label (px 8 / py 2, 12px/500
-// text, 1px transparent border) with six variants. Hover states follow
-// shadcn's [a&] semantics: they apply only when the badge is clickable
-// (OnClick set), mirroring badges rendered as anchors.
+// BadgeWidget is shadcn's Badge: a near-pill label (rounded-4xl ≈ 26px,
+// px 8 / py 2, 12px/500 text, 1px transparent border) with six variants.
+// Hover states follow shadcn's [a&] semantics: they apply only when the
+// badge is clickable (OnClick set), mirroring badges rendered as anchors.
 //
 // Architecture: graft-owned widget (no gogpu/ui core widget wrapped) — the
 // badge needs no interaction machinery beyond hover/click/focus, and
 // drawing directly via metrics + theme tokens gives exact pixel control
-// over the pill, border, and text placement.
+// over the corners, border, and text placement.
 type BadgeWidget struct {
 	widget.WidgetBase
 
@@ -251,7 +251,7 @@ func (b *BadgeWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	tok := th.Active()
 	dark := th.IsDark()
 	bounds := b.Bounds()
-	radius := th.RadiusFull()
+	radius := th.Radius4XL() // rounded-4xl ≈ 26px
 
 	if fill := b.fillColor(tok, dark); fill.A > 0 {
 		canvas.DrawRoundRect(bounds, fill, radius)
