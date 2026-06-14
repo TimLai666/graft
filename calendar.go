@@ -14,11 +14,28 @@ import (
 	"github.com/TimLai666/graft/theme"
 )
 
+// CalendarMode is the selection behavior of a Calendar (shadcn:
+// mode="single" | "range" | "multiple").
+type CalendarMode int
+
+const (
+	// CalendarSingle selects exactly one day (the default).
+	CalendarSingle CalendarMode = iota
+	// CalendarRange selects a contiguous start..end span.
+	CalendarRange
+	// CalendarMultiple selects an arbitrary set of days via toggle.
+	CalendarMultiple
+)
+
 // CalendarWidget is the shadcn Calendar: a single-month day grid with a
 // month/year caption, prev/next ghost nav buttons, a weekday header row, and
 // a 6×7 grid of day cells. The selected day renders as a --primary pill, the
 // current day gets an outline, and days outside the displayed month are
 // muted (docs/research/03-shadcn-pixel-spec.md §5 "Calendar").
+//
+// Three selection modes mirror react-day-picker: single (one --primary pill),
+// range (start/end --primary pills with a --accent band on the in-between
+// days), and multiple (a set of toggled --primary pills).
 //
 // Architecture decision: graft-owned widget. The grid math is pure Go
 // time-package arithmetic and the visuals are token-driven ghost-button
@@ -26,12 +43,24 @@ import (
 type CalendarWidget struct {
 	widget.WidgetBase
 
-	month    time.Time // any time within the displayed month
-	selected *time.Time
-	today    *time.Time // pinned "today" (nil = time.Now at draw)
+	mode  CalendarMode
+	month time.Time  // any time within the displayed month
+	today *time.Time // pinned "today" (nil = time.Now at draw)
 
-	onSelect func(time.Time)
-	weekday  time.Weekday // first day of week (default Sunday)
+	// single
+	selected *time.Time
+
+	// range
+	rangeStart *time.Time
+	rangeEnd   *time.Time
+
+	// multiple
+	dates []time.Time
+
+	onSelect      func(time.Time)
+	onRangeChange func(start, end time.Time)
+	onDatesChange func([]time.Time)
+	weekday       time.Weekday // first day of week (default Sunday)
 
 	hovered int // 1-based day index hovered, or 0
 
@@ -59,16 +88,59 @@ func Calendar() *CalendarWidget {
 	return c
 }
 
+// Mode sets the selection mode (single, range, or multiple).
+func (c *CalendarWidget) Mode(m CalendarMode) *CalendarWidget {
+	c.mode = m
+	return c
+}
+
+// Range switches the calendar to range-selection mode.
+func (c *CalendarWidget) Range() *CalendarWidget {
+	c.mode = CalendarRange
+	return c
+}
+
+// Multiple switches the calendar to multiple-selection mode.
+func (c *CalendarWidget) Multiple() *CalendarWidget {
+	c.mode = CalendarMultiple
+	return c
+}
+
 // Month sets the displayed month (any time within it).
 func (c *CalendarWidget) Month(t time.Time) *CalendarWidget {
 	c.month = firstOfMonth(t)
 	return c
 }
 
-// Selected sets the selected day.
+// Selected sets the selected day (single mode).
 func (c *CalendarWidget) Selected(t time.Time) *CalendarWidget {
 	tt := t
 	c.selected = &tt
+	return c
+}
+
+// SelectedRange presets the start/end of a range (range mode). The pair is
+// normalized so start <= end.
+func (c *CalendarWidget) SelectedRange(start, end time.Time) *CalendarWidget {
+	c.mode = CalendarRange
+	s := truncateDay(start)
+	e := truncateDay(end)
+	if e.Before(s) {
+		s, e = e, s
+	}
+	c.rangeStart = &s
+	c.rangeEnd = &e
+	return c
+}
+
+// SelectedDates presets the selected set (multiple mode). Dates are truncated
+// to day granularity and de-duplicated.
+func (c *CalendarWidget) SelectedDates(dates ...time.Time) *CalendarWidget {
+	c.mode = CalendarMultiple
+	c.dates = c.dates[:0]
+	for _, d := range dates {
+		c.addDate(truncateDay(d))
+	}
 	return c
 }
 
@@ -79,9 +151,23 @@ func (c *CalendarWidget) Today(t time.Time) *CalendarWidget {
 	return c
 }
 
-// OnSelect registers the day-selection observer.
+// OnSelect registers the day-selection observer (single mode).
 func (c *CalendarWidget) OnSelect(fn func(time.Time)) *CalendarWidget {
 	c.onSelect = fn
+	return c
+}
+
+// OnRangeChange registers the range-selection observer (range mode). It fires
+// when a complete start..end range is formed.
+func (c *CalendarWidget) OnRangeChange(fn func(start, end time.Time)) *CalendarWidget {
+	c.onRangeChange = fn
+	return c
+}
+
+// OnDatesChange registers the set-selection observer (multiple mode). It fires
+// with the full selected set on every toggle.
+func (c *CalendarWidget) OnDatesChange(fn func([]time.Time)) *CalendarWidget {
+	c.onDatesChange = fn
 	return c
 }
 
@@ -213,11 +299,6 @@ func (c *CalendarWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 
 	// Day grid.
 	today := truncateDay(c.resolvedToday())
-	var selected time.Time
-	hasSelected := c.selected != nil
-	if hasSelected {
-		selected = truncateDay(*c.selected)
-	}
 
 	for row := 0; row < m.Rows; row++ {
 		rowY := firstWeekY + float32(row)*(m.CellSize+m.WeekGap)
@@ -229,45 +310,114 @@ func (c *CalendarWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 				m.CellSize, m.CellSize)
 
 			outside := day.Month() != c.month.Month()
-			isSelected := hasSelected && sameDay(day, selected)
 			isToday := sameDay(day, today)
 			isHovered := idx == c.hovered
 
-			c.drawDayCell(canvas, th, tok, cellRect, day, outside, isSelected, isToday, isHovered)
+			c.drawDayCell(canvas, th, tok, cellRect, day, col, outside, isToday, isHovered)
 		}
 	}
 }
 
-// drawDayCell paints one day: a primary pill when selected, an accent fill
-// on hover, an outline on today, muted text outside the month.
+// dayState describes how a single day participates in the current selection.
+type dayState struct {
+	selected   bool // a filled --primary pill (single, multiple, or range end)
+	rangeStart bool
+	rangeEnd   bool
+	rangeMid   bool // in-between day: --accent band, no pill
+}
+
+// stateFor classifies day against the active selection mode.
+func (c *CalendarWidget) stateFor(day time.Time) dayState {
+	switch c.mode {
+	case CalendarRange:
+		s, e := c.rangeStart, c.rangeEnd
+		switch {
+		case s != nil && e != nil:
+			st := dayState{}
+			if sameDay(day, *s) {
+				st.selected, st.rangeStart = true, true
+			}
+			if sameDay(day, *e) {
+				st.selected, st.rangeEnd = true, true
+			}
+			if !st.selected && day.After(*s) && day.Before(*e) {
+				st.rangeMid = true
+			}
+			return st
+		case s != nil:
+			if sameDay(day, *s) {
+				return dayState{selected: true, rangeStart: true, rangeEnd: true}
+			}
+		}
+		return dayState{}
+	case CalendarMultiple:
+		if c.hasDate(day) {
+			return dayState{selected: true}
+		}
+		return dayState{}
+	default: // CalendarSingle
+		if c.selected != nil && sameDay(day, truncateDay(*c.selected)) {
+			return dayState{selected: true}
+		}
+		return dayState{}
+	}
+}
+
+// drawDayCell paints one day: a primary pill when selected, an accent band for
+// the in-between days of a range, an accent fill on hover, an accent fill on
+// today, and muted text outside the month.
 func (c *CalendarWidget) drawDayCell(canvas widget.Canvas, th *theme.Theme, tok *theme.Tokens,
-	cell geometry.Rect, day time.Time, outside, selected, today, hovered bool) {
+	cell geometry.Rect, day time.Time, col int, outside, today, hovered bool) {
 	m := metrics.Calendar
 	r := th.RadiusMD()
 
+	st := c.stateFor(day)
 	fg := tok.Foreground
 
-	if selected {
+	switch {
+	case st.rangeMid:
+		// Continuous square accent band behind the in-between days.
+		canvas.DrawRect(cell, tok.Accent)
+		fg = tok.AccentForeground
+	case st.selected:
+		// Range ends bleed a half accent band toward the middle so the band
+		// is visually continuous under the rounded pill.
+		if st.rangeStart && !st.rangeEnd && col < m.Columns-1 {
+			canvas.DrawRect(rightHalf(cell), tok.Accent)
+		}
+		if st.rangeEnd && !st.rangeStart && col > 0 {
+			canvas.DrawRect(leftHalf(cell), tok.Accent)
+		}
 		canvas.DrawRoundRect(cell, tok.Primary, r)
 		fg = tok.PrimaryForeground
-	} else if hovered {
+	case hovered:
 		canvas.DrawRoundRect(cell, tok.Accent, r)
 		fg = tok.AccentForeground
 		if outside {
 			fg = tok.MutedForeground
 		}
-	} else if today {
+	case today:
 		canvas.DrawRoundRect(cell, tok.Accent, r)
 		fg = tok.AccentForeground
 	}
 
-	if outside && !selected {
+	if outside && !st.selected && !st.rangeMid {
 		fg = tok.MutedForeground
 	}
 
 	label := strconv.Itoa(day.Day())
 	drawCalendarText(canvas, label, cell, m.DayFontSize, m.DayFontWeight,
 		fg, calendarFamily(th, m.DayFontWeight), widget.TextAlignCenter)
+}
+
+// leftHalf / rightHalf return the inner half of a cell, used to bridge the
+// accent band from a range end into the adjacent in-between day.
+func leftHalf(cell geometry.Rect) geometry.Rect {
+	return geometry.NewRect(cell.Min.X, cell.Min.Y, cell.Width()/2, cell.Height())
+}
+
+func rightHalf(cell geometry.Rect) geometry.Rect {
+	return geometry.NewRect(cell.Min.X+cell.Width()/2, cell.Min.Y, cell.Width()/2, cell.Height())
 }
 
 // Event handles nav clicks and day selection/hover.
@@ -319,7 +469,7 @@ func (c *CalendarWidget) Event(ctx widget.Context, e event.Event) bool {
 		return false
 	case event.MouseRelease:
 		if me.Button == event.ButtonLeft && inGrid {
-			c.selectDay(day)
+			c.selectDay(day, ctx)
 			return true
 		}
 	}
@@ -353,17 +503,123 @@ func (c *CalendarWidget) hitDay(pos geometry.Point) (int, time.Time, bool) {
 	return idx, day, true
 }
 
-func (c *CalendarWidget) selectDay(day time.Time) {
+// selectDay applies a click to the active selection mode and repaints.
+func (c *CalendarWidget) selectDay(day time.Time, ctx widget.Context) {
 	d := truncateDay(day)
-	c.selected = &d
 	// Selecting an outside-month day navigates to that month.
 	if day.Month() != c.month.Month() {
 		c.month = firstOfMonth(day)
 	}
+	switch c.mode {
+	case CalendarRange:
+		c.applyRangeClick(d)
+	case CalendarMultiple:
+		c.toggleDate(d)
+	default:
+		c.applySingleClick(d)
+	}
 	c.SetNeedsRedraw(true)
+	if ctx != nil {
+		ctx.Invalidate()
+	}
+}
+
+func (c *CalendarWidget) applySingleClick(d time.Time) {
+	c.selected = &d
 	if c.onSelect != nil {
 		c.onSelect(d)
 	}
+}
+
+// applyRangeClick runs the three-click range state machine: first click sets
+// the start (clears the end); second click sets the end (swapping if it falls
+// before the start); a click while a complete range exists restarts at the new
+// start.
+func (c *CalendarWidget) applyRangeClick(d time.Time) {
+	switch {
+	case c.rangeStart == nil || c.rangeEnd != nil:
+		// Start a fresh range.
+		c.rangeStart = &d
+		c.rangeEnd = nil
+	default:
+		// Close the range, swapping if the second click precedes the start.
+		start := *c.rangeStart
+		end := d
+		if end.Before(start) {
+			start, end = end, start
+		}
+		c.rangeStart = &start
+		c.rangeEnd = &end
+		if c.onRangeChange != nil {
+			c.onRangeChange(start, end)
+		}
+	}
+}
+
+func (c *CalendarWidget) toggleDate(d time.Time) {
+	if c.hasDate(d) {
+		c.removeDate(d)
+	} else {
+		c.addDate(d)
+	}
+	if c.onDatesChange != nil {
+		out := make([]time.Time, len(c.dates))
+		copy(out, c.dates)
+		c.onDatesChange(out)
+	}
+}
+
+func (c *CalendarWidget) hasDate(d time.Time) bool {
+	dd := truncateDay(d)
+	for _, x := range c.dates {
+		if sameDay(x, dd) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *CalendarWidget) addDate(d time.Time) {
+	if !c.hasDate(d) {
+		c.dates = append(c.dates, truncateDay(d))
+	}
+}
+
+func (c *CalendarWidget) removeDate(d time.Time) {
+	dd := truncateDay(d)
+	out := c.dates[:0]
+	for _, x := range c.dates {
+		if !sameDay(x, dd) {
+			out = append(out, x)
+		}
+	}
+	c.dates = out
+}
+
+// SelectedDay returns the single-mode selection, if any.
+func (c *CalendarWidget) SelectedDay() (time.Time, bool) {
+	if c.selected == nil {
+		return time.Time{}, false
+	}
+	return *c.selected, true
+}
+
+// SelectedRangeValue returns the current range and whether it is complete.
+func (c *CalendarWidget) SelectedRangeValue() (start, end time.Time, complete bool) {
+	if c.rangeStart == nil {
+		return time.Time{}, time.Time{}, false
+	}
+	if c.rangeEnd == nil {
+		return *c.rangeStart, time.Time{}, false
+	}
+	return *c.rangeStart, *c.rangeEnd, true
+}
+
+// SelectedDatesValue returns a copy of the multiple-mode selection set.
+func (c *CalendarWidget) SelectedDatesValue() []time.Time {
+	out := make([]time.Time, len(c.dates))
+	copy(out, c.dates)
+	return out
 }
 
 // Children returns the nav buttons.
