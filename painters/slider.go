@@ -17,10 +17,10 @@ var sliderFallbackTheme = theme.New()
 // PaintSlider renders a core/slider in shadcn style
 // (metrics.Slider; docs/research/03-shadcn-pixel-spec.md section 5 "Slider"):
 //
-//   - track: 6px pill in --muted spanning the full main axis,
+//   - track: 4px pill in --muted spanning the full main axis,
 //   - range: --primary fill from the start to the thumb, square leading
 //     edge via the track clip (overflow-hidden),
-//   - thumb: 16px circle, always-white fill in both modes (bg-white),
+//   - thumb: 12px circle, always-white fill in both modes (bg-white),
 //     1px --primary border, shadow-sm,
 //   - hover/drag/focus: 4px ring in --ring at 50% alpha around the thumb
 //     (hover:ring-4 focus-visible:ring-4 ring-ring/50),

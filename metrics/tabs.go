@@ -5,10 +5,10 @@ package metrics
 //
 // Root: "group/tabs flex gap-2 data-[orientation=horizontal]:flex-col".
 // List: "inline-flex w-fit items-center justify-center rounded-lg p-[3px]
-// text-muted-foreground group-data-[orientation=horizontal]/tabs:h-9"
+// text-muted-foreground group-data-[orientation=horizontal]/tabs:h-8"
 // with variants default:"bg-muted" / line:"gap-1 bg-transparent".
 // Trigger: "relative inline-flex h-[calc(100%-1px)] flex-1 items-center
-// justify-center gap-1.5 rounded-md border border-transparent px-2 py-1
+// justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5
 // text-sm font-medium whitespace-nowrap text-foreground/60 ...
 // dark:text-muted-foreground dark:hover:text-foreground
 // data-[state=active]:bg-background data-[state=active]:text-foreground
@@ -22,7 +22,7 @@ var Tabs = struct {
 	// RootGap is the gap between the list and the content (root gap-2).
 	RootGap float32
 
-	// ListHeight is the tab list height in px (h-9 = 36px, horizontal).
+	// ListHeight is the tab list height in px (h-8 = 32px, horizontal).
 	ListHeight float32
 
 	// ListPadding is the list inner padding in px (p-[3px]).
@@ -33,13 +33,13 @@ var Tabs = struct {
 	LineGap float32
 
 	// TriggerHeightInset is subtracted from the list's inner height to
-	// get the trigger height (h-[calc(100%-1px)] -> 36-6-1 = 29px).
+	// get the trigger height (h-[calc(100%-1px)] -> 32-6-1 = 25px).
 	TriggerHeightInset float32
 
-	// TriggerPadX is the trigger horizontal padding in px (px-2).
+	// TriggerPadX is the trigger horizontal padding in px (px-1.5).
 	TriggerPadX float32
 
-	// TriggerPadY is the trigger vertical padding in px (py-1).
+	// TriggerPadY is the trigger vertical padding in px (py-0.5).
 	TriggerPadY float32
 
 	// TriggerFontSize is the trigger label size in px (text-sm).
@@ -74,12 +74,12 @@ var Tabs = struct {
 	UnderlineDrop float32
 }{
 	RootGap:             8,   // gap-2
-	ListHeight:          36,  // h-9
+	ListHeight:          32,  // h-8
 	ListPadding:         3,   // p-[3px]
 	LineGap:             4,   // gap-1 (line variant)
 	TriggerHeightInset:  1,   // h-[calc(100%-1px)]
-	TriggerPadX:         8,   // px-2
-	TriggerPadY:         4,   // py-1
+	TriggerPadX:         6,   // px-1.5
+	TriggerPadY:         2,   // py-0.5
 	TriggerFontSize:     14,  // text-sm
 	TriggerLineHeight:   20,  // text-sm line height
 	TriggerFontWeight:   500, // font-medium
