@@ -287,7 +287,7 @@ func (c *datePickerContent) Draw(ctx widget.Context, canvas widget.Canvas) {
 	}
 	th := c.owner.resolvedTheme()
 	tok := th.Active()
-	r := th.RadiusMD()
+	r := th.RadiusLG() // content: rounded-lg
 	bounds := c.Bounds()
 
 	draw.Shadow(canvas, bounds, r, metrics.ShadowMD)

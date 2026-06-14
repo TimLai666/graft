@@ -125,7 +125,7 @@ func (p Dropdown) PaintMenu(canvas widget.Canvas, st *dropdown.MenuPaintState) {
 	tok := th.Active()
 	m := metrics.Select
 	bounds := st.Bounds
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // content: rounded-lg
 
 	// Content surface: shadow-md, bg-popover, 1px border.
 	draw.Shadow(canvas, bounds, radius, metrics.ShadowMD)

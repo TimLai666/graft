@@ -294,8 +294,8 @@ func (o *dialogOverlayWidget) Children() []widget.Widget {
 }
 
 // DialogContentWidget is the centered card: bg Background, 1px Border, radius
-// LG, shadow-LG, padding 24, internal gap 16, with a close X button in the
-// top-right corner (unless hidden).
+// XL (rounded-xl), shadow-LG, padding 24, internal gap 16, with a close X
+// button in the top-right corner (unless hidden).
 type DialogContentWidget struct {
 	widget.WidgetBase
 
@@ -399,7 +399,7 @@ func (c *DialogContentWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	th := c.resolvedTheme()
 	tok := th.Active()
 	b := c.Bounds()
-	radius := th.RadiusLG()
+	radius := th.RadiusXL() // content: rounded-xl
 
 	draw.Shadow(canvas, b, radius, metrics.ShadowLG)
 	canvas.DrawRoundRect(b, tok.Background, radius)

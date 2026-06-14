@@ -287,7 +287,7 @@ func (t *PopoverTriggerWidget) Children() []widget.Widget {
 }
 
 // PopoverContentWidget is the floating popover surface: w-72, p-4,
-// rounded-md, 1px border, bg-popover, shadow-md.
+// rounded-lg, 1px border, bg-popover, shadow-md.
 type PopoverContentWidget struct {
 	widget.WidgetBase
 
@@ -359,7 +359,7 @@ func (c *PopoverContentWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		return
 	}
 	tok := c.resolvedTheme().Active()
-	r := c.resolvedTheme().RadiusMD()
+	r := c.resolvedTheme().RadiusLG() // content: rounded-lg
 	bounds := c.Bounds()
 
 	draw.Shadow(canvas, bounds, r, metrics.ShadowMD)
