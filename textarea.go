@@ -60,8 +60,6 @@ type TextareaWidget struct {
 	focusVisible bool
 	dragging     bool
 
-	clipboard string
-
 	// wrap caches the last computed soft-wrap layout (rebuilt every Layout).
 	wrap wrapLayout
 }
@@ -591,8 +589,8 @@ func (t *TextareaWidget) keyEvent(ctx widget.Context, e *event.KeyEvent) bool {
 			t.invalidate(ctx)
 			return true
 		case event.KeyV:
-			if t.clipboard != "" {
-				t.insert(t.clipboard)
+			if pasted := clipboardGet(); pasted != "" {
+				t.insert(pasted)
 				t.scrollToCaret()
 				t.invalidate(ctx)
 			}
@@ -708,14 +706,15 @@ func (t *TextareaWidget) deleteSelection() {
 	t.sel = start
 }
 
-// copySelection stores the selected text in the internal clipboard.
+// copySelection writes the selected text to the clipboard provider (OS-backed
+// when installed by graftapp, in-memory otherwise).
 func (t *TextareaWidget) copySelection() {
 	if t.caret == t.sel {
 		return
 	}
 	runes := []rune(t.resolvedText())
 	start, end := t.selRange()
-	t.clipboard = string(runes[start:end])
+	clipboardSet(string(runes[start:end]))
 }
 
 // scrollToCaret adjusts scrollY so the caret row is visible within the

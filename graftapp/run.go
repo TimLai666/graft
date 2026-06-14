@@ -125,6 +125,20 @@ func (a *App) Run(root graft.Widget) error {
 		WithTitle(a.title).
 		WithSize(a.width, a.height))
 
+	// Wire the OS clipboard into graft-owned widgets (Textarea). Read errors
+	// are swallowed to an empty string so a paste with no/unreadable clipboard
+	// is a no-op rather than a crash.
+	graft.SetClipboard(
+		func() string {
+			text, err := gpuApp.ClipboardRead()
+			if err != nil {
+				return ""
+			}
+			return text
+		},
+		func(text string) { _ = gpuApp.ClipboardWrite(text) },
+	)
+
 	uiApp := app.New(
 		app.WithWindowProvider(gpuApp),
 		app.WithPlatformProvider(gpuApp),

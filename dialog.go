@@ -216,6 +216,11 @@ type dialogOverlayWidget struct {
 	windowSize        geometry.Size
 	dismissOnBackdrop bool
 	onDismiss         func()
+
+	// closeFocused tracks whether keyboard focus currently rests on the close
+	// (X) button. Tab moves focus to it; Enter/Space then activates it. Stays
+	// false for AlertDialog, whose content has no close button.
+	closeFocused bool
 }
 
 func newDialogOverlay(content *DialogContentWidget, windowSize geometry.Size, dismissOnBackdrop bool, onDismiss func()) *dialogOverlayWidget {
@@ -261,10 +266,27 @@ func (o *dialogOverlayWidget) Event(ctx widget.Context, e event.Event) bool {
 		return true
 	}
 
-	if ke, ok := e.(*event.KeyEvent); ok {
-		if ke.KeyType == event.KeyPress && ke.Key == event.KeyEscape {
+	if ke, ok := e.(*event.KeyEvent); ok && ke.KeyType == event.KeyPress {
+		switch ke.Key {
+		case event.KeyEscape:
 			o.Dismiss()
 			return true
+		case event.KeyTab:
+			// The close button is the only keyboard-focusable target the
+			// overlay manages; Tab toggles focus onto/off it. No close button
+			// (AlertDialog) → nothing to focus, fall through.
+			if o.content.hasClose() {
+				o.setCloseFocused(!o.closeFocused)
+				ctx.Invalidate()
+				return true
+			}
+		case event.KeyEnter, event.KeySpace:
+			// Activate the focused close button (Enter or Space), mirroring the
+			// mouse click. Only when the close button currently holds focus.
+			if o.closeFocused && o.content.hasClose() {
+				o.content.activateClose()
+				return true
+			}
 		}
 	}
 
@@ -277,6 +299,16 @@ func (o *dialogOverlayWidget) Event(ctx widget.Context, e event.Event) bool {
 
 	// Modal: swallow everything else so the tree below is inert.
 	return true
+}
+
+// setCloseFocused moves keyboard focus onto/off the close button, keeping the
+// content's focus ring in sync and requesting a repaint.
+func (o *dialogOverlayWidget) setCloseFocused(v bool) {
+	if !o.content.hasClose() {
+		v = false
+	}
+	o.closeFocused = v
+	o.content.setCloseFocused(v)
 }
 
 // Dismiss invokes the dismissal callback.
@@ -488,6 +520,34 @@ func (c *DialogContentWidget) Event(ctx widget.Context, e event.Event) bool {
 		}
 	}
 	return false
+}
+
+// hasClose reports whether this content shows a focusable close button.
+func (c *DialogContentWidget) hasClose() bool { return !c.hideX }
+
+// setCloseFocused updates the close button's focus state, repainting the ring
+// when it changes. No-op when the close button is hidden (AlertDialog).
+func (c *DialogContentWidget) setCloseFocused(v bool) {
+	if c.hideX {
+		v = false
+	}
+	if c.closeFocused == v {
+		return
+	}
+	c.closeFocused = v
+	c.SetNeedsRedraw(true)
+}
+
+// activateClose invokes the close callback (keyboard Enter/Space on the focused
+// close button). Returns false when there is no close button to activate.
+func (c *DialogContentWidget) activateClose() bool {
+	if c.hideX {
+		return false
+	}
+	if c.onClose != nil {
+		c.onClose()
+	}
+	return true
 }
 
 // Children returns the section widgets.

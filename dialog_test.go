@@ -192,6 +192,149 @@ func TestDialogTriggerOpens(t *testing.T) {
 	}
 }
 
+// pushDialogOverlay opens a bound Dialog through a fake overlay manager and
+// returns the live overlay widget (laid out at the given window size) plus the
+// open signal, mirroring the helper pattern in alertdialog_test.go.
+func pushDialogOverlay(t *testing.T, content *graft.DialogContentWidget, win geometry.Size) (widget.Widget, state.Signal[bool]) {
+	t.Helper()
+	open := state.NewSignal(false)
+	host := graft.Dialog(content).Bind(open)
+
+	om := &ovFakeOverlayManager{}
+	ctx := uitest.NewMockContext()
+	ctx.OverlayVal = om
+	ctx.WindowSizeVal = win
+
+	host.Layout(ctx, looseConstraints())
+	open.Set(true)
+	host.Layout(ctx, looseConstraints())
+
+	if len(om.pushed) != 1 {
+		t.Fatalf("dialog overlay not pushed: pushed=%d", len(om.pushed))
+	}
+	overlay := om.pushed[0]
+	overlay.Layout(ctx, geometry.Tight(win))
+	return overlay, open
+}
+
+// dispatchKey sends a key press to the widget.
+func dispatchKey(w widget.Widget, ctx widget.Context, k event.Key) bool {
+	return w.Event(ctx, event.NewKeyEvent(event.KeyPress, k, 0, event.ModNone))
+}
+
+// TestDialogCloseKeyboardFocus verifies the close (X) button is keyboard
+// focusable: Tab moves focus onto it (rendering the focus ring) and both Enter
+// and Space then activate it, closing the dialog. Without focus, Enter/Space
+// must NOT close.
+func TestDialogCloseKeyboardFocus(t *testing.T) {
+	defer ovForceLightMode(t)()
+	if err := graft.LoadAssets(); err != nil {
+		t.Fatal(err)
+	}
+	win := geometry.Sz(800, 600)
+
+	// Enter activates the focused close button.
+	t.Run("Enter", func(t *testing.T) {
+		overlay, open := pushDialogOverlay(t, graft.DialogContent(graft.DialogTitle("Hi")), win)
+		ctx := uitest.NewMockContext()
+
+		// Enter before focusing must NOT close (no focus yet).
+		dispatchKey(overlay, ctx, event.KeyEnter)
+		if !open.Get() {
+			t.Fatal("Enter closed the dialog before the close button was focused")
+		}
+
+		// Tab focuses the close button; Enter then closes.
+		if !dispatchKey(overlay, ctx, event.KeyTab) {
+			t.Fatal("Tab was not consumed by the overlay")
+		}
+		dispatchKey(overlay, ctx, event.KeyEnter)
+		if open.Get() {
+			t.Fatal("Enter on the focused close button did not close the dialog")
+		}
+	})
+
+	// Space activates the focused close button too.
+	t.Run("Space", func(t *testing.T) {
+		overlay, open := pushDialogOverlay(t, graft.DialogContent(graft.DialogTitle("Hi")), win)
+		ctx := uitest.NewMockContext()
+
+		dispatchKey(overlay, ctx, event.KeySpace)
+		if !open.Get() {
+			t.Fatal("Space closed the dialog before the close button was focused")
+		}
+
+		dispatchKey(overlay, ctx, event.KeyTab)
+		dispatchKey(overlay, ctx, event.KeySpace)
+		if open.Get() {
+			t.Fatal("Space on the focused close button did not close the dialog")
+		}
+	})
+
+	// Focusing the close button renders its focus ring (Ring-colored stroke).
+	t.Run("FocusRing", func(t *testing.T) {
+		content := graft.DialogContent(graft.DialogTitle("Hi"))
+		overlay, _ := pushDialogOverlay(t, content, win)
+		ctx := uitest.NewMockContext()
+
+		ringColor := graft.CurrentTheme().Active().Ring
+		hasRing := func() bool {
+			canvas := uitest.DrawWidget(content)
+			for _, s := range canvas.StrokeRoundRects {
+				if s.Color == ringColor && s.StrokeWidth == metrics.LegacyCloseRingWidth {
+					return true
+				}
+			}
+			return false
+		}
+
+		if hasRing() {
+			t.Fatal("focus ring drawn before the close button was focused")
+		}
+		dispatchKey(overlay, ctx, event.KeyTab)
+		if !hasRing() {
+			t.Fatal("focus ring not drawn after Tab focused the close button")
+		}
+	})
+}
+
+// TestAlertDialogCloseKeyNoop confirms the keyboard close path is inert for
+// AlertDialog (which hides the close button): Tab/Enter/Space never close it,
+// while Escape still does.
+func TestAlertDialogCloseKeyNoop(t *testing.T) {
+	defer ovForceLightMode(t)()
+	if err := graft.LoadAssets(); err != nil {
+		t.Fatal(err)
+	}
+	win := geometry.Sz(800, 600)
+
+	open := state.NewSignal(false)
+	content := graft.AlertDialogContent(graft.AlertDialogTitle("Sure?"))
+	host := graft.AlertDialog(content).Bind(open)
+
+	om := &ovFakeOverlayManager{}
+	ctx := uitest.NewMockContext()
+	ctx.OverlayVal = om
+	ctx.WindowSizeVal = win
+	host.Layout(ctx, looseConstraints())
+	open.Set(true)
+	host.Layout(ctx, looseConstraints())
+	overlay := om.pushed[0]
+	overlay.Layout(ctx, geometry.Tight(win))
+
+	for _, k := range []event.Key{event.KeyTab, event.KeyEnter, event.KeySpace} {
+		dispatchKey(overlay, ctx, k)
+		if !open.Get() {
+			t.Fatalf("AlertDialog closed on key %v (must not — no close button)", k)
+		}
+	}
+
+	dispatchEsc(overlay, ctx)
+	if open.Get() {
+		t.Fatal("AlertDialog did not close on Escape")
+	}
+}
+
 // TestGoldenDialog renders the content card directly, with and without the
 // close button, light + dark.
 func TestGoldenDialog(t *testing.T) {
