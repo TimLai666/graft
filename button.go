@@ -431,12 +431,12 @@ func (b *ButtonWidget) visual(tok *theme.Tokens, dark, hovered bool) buttonVisua
 	return v
 }
 
-// radius returns the corner radius (rounded-md via the theme scale).
+// radius returns the corner radius (rounded-lg via the theme scale).
 func (b *ButtonWidget) radius() float32 {
 	if b.style.Radius != nil {
 		return *b.style.Radius
 	}
-	return b.theme.RadiusMD()
+	return b.theme.RadiusLG()
 }
 
 // Draw paints the button: shadow, fill, border, icon, label, underline,

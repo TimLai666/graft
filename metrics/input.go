@@ -1,20 +1,20 @@
 package metrics
 
 // Input holds the exact pixel constants for the shadcn Input control
-// (docs/research/03-shadcn-pixel-spec.md §5 "Input"), transcribed from the
-// new-york-v4 registry class string:
+// (current ui.shadcn.com live style), transcribed from the registry class
+// string:
 //
-//	"h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1
+//	"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1
 //	 text-base shadow-xs ... placeholder:text-muted-foreground ... md:text-sm
 //	 dark:bg-input/30" + focus/invalid recipes.
 //
-// Radius routes through the theme (rounded-md → t.RadiusMD()); only fixed
+// Radius routes through the theme (rounded-lg → t.RadiusLG()); only fixed
 // literals live here. The package is pure data with no imports.
 var Input = struct {
-	// Height is the control height in px (h-9 → 36).
+	// Height is the control height in px (h-8 → 32).
 	Height float32
 
-	// PadX is the horizontal content padding in px (px-3 → 12).
+	// PadX is the horizontal content padding in px (px-2.5 → 10).
 	PadX float32
 
 	// PadY is the vertical content padding in px (py-1 → 4).
@@ -36,8 +36,8 @@ var Input = struct {
 	// Input token (dark:bg-input/30 → 0.30).
 	DarkFillAlpha float32
 }{
-	Height:        36,
-	PadX:          12,
+	Height:        32,
+	PadX:          10,
 	PadY:          4,
 	FontSize:      14,
 	FontWeight:    400,

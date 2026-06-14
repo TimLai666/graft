@@ -1,22 +1,22 @@
 package metrics
 
 // Textarea holds the exact pixel constants for the shadcn Textarea control
-// (docs/research/03-shadcn-pixel-spec.md §5 "Textarea"), transcribed from the
-// new-york-v4 registry class string:
+// (current ui.shadcn.com live style), transcribed from the registry class
+// string:
 //
-//	"flex field-sizing-content min-h-16 w-full rounded-md border border-input
-//	 bg-transparent px-3 py-2 text-base shadow-xs ... md:text-sm dark:bg-input/30"
+//	"flex field-sizing-content min-h-16 w-full rounded-lg border border-input
+//	 bg-transparent px-2.5 py-2 text-base shadow-xs ... md:text-sm dark:bg-input/30"
 //	+ "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 //	+ "aria-invalid:border-destructive aria-invalid:ring-destructive/20
 //	   dark:aria-invalid:ring-destructive/40".
 //
-// Radius routes through the theme (rounded-md → t.RadiusMD()); only fixed
+// Radius routes through the theme (rounded-lg → t.RadiusLG()); only fixed
 // literals live here. The package is pure data with no imports.
 var Textarea = struct {
 	// MinHeight is the minimum control height in px (min-h-16 → 64).
 	MinHeight float32
 
-	// PadX is the horizontal content padding in px (px-3 → 12).
+	// PadX is the horizontal content padding in px (px-2.5 → 10).
 	PadX float32
 
 	// PadY is the vertical content padding in px (py-2 → 8).
@@ -44,7 +44,7 @@ var Textarea = struct {
 	DarkFillAlpha float32
 }{
 	MinHeight:     64,
-	PadX:          12,
+	PadX:          10,
 	PadY:          8,
 	FontSize:      14,
 	FontWeight:    400,

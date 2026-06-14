@@ -339,7 +339,7 @@ func (t *TextareaWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	tok := th.Active()
 	dark := th.IsDark()
 	bounds := t.Bounds()
-	radius := th.RadiusMD()
+	radius := th.RadiusLG()
 	disabled := t.disabled
 
 	if !disabled {
