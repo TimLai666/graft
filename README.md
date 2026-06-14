@@ -5,6 +5,8 @@
 graft replicates shadcn/ui down to the token level: the same OKLCH CSS variables (copied verbatim), the same component anatomy and variants, the same Geist typography, the same theming workflow. If you know shadcn, you already know graft.
 
 > Status: all components landed — 50+ shadcn components across every tier (form controls, overlays, navigation, data display, charts, command palette, sidebar, carousel, OTP). Each is golden-tested pixel-for-pixel against the shadcn spec.
+>
+> Pixel target: graft's metrics track the **current ui.shadcn.com style** (the "Radix UI" era — controls at `h-8`, `px-2.5`, `rounded-lg`; cards `rounded-xl`), re-transcribed from live computed CSS on **2026-06-14**. shadcn is a moving target; component geometry is verified against that snapshot (see `compare/shadcn-spec.md`). Colors use the canonical OKLCH token presets, validated against Tailwind v4.
 
 ## Why
 

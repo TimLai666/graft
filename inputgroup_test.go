@@ -58,7 +58,7 @@ func TestInputGroupSpecBorder(t *testing.T) {
 	g.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(300, 100)))
 	canvas := uitest.DrawWidget(g)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	var borders []uitest.StrokeRoundRectCall
 	for _, s := range canvas.StrokeRoundRects {

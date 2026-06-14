@@ -71,7 +71,7 @@ func TestButtonGroupOuterBorder(t *testing.T) {
 	g.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(600, 100)))
 	canvas := uitest.DrawWidget(g)
 
-	radius := graft.CurrentTheme().RadiusMD()
+	radius := graft.CurrentTheme().RadiusLG()
 
 	// The group's rounded clip is present.
 	if len(canvas.ClipRoundRects) == 0 {
