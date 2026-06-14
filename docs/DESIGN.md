@@ -227,7 +227,9 @@ The root package re-exports for ergonomics: `type Theme = theme.Theme`, `func Ne
   - `command` — cmdk: filter input + listview + keyboard nav + group headers; `CommandDialog` composes with Dialog; global shortcut via `Window.FocusManager().RegisterShortcut`.
   - `carousel` — scrollview + snap + prev/next (Phase 3).
 
-**Omitted (D), final:** NativeSelect (collapses into Select), Drawer (Sheet side=bottom), legacy Toast (Sonner only), NavigationMenu (Menubar/Sidebar/Tabs are the desktop idioms), Direction/RTL (deferred to gogpu/ui text layer), react-hook-form Form (replaced by signal-backed `graft.Form`, §4).
+**Originally omitted, later added (2026-06-14, "shadcn 有的功能都要有" pass):** Drawer (vaul-style, bottom-default — `drawer.go`), NavigationMenu (`navigationmenu.go`), DataTable (sortable/selectable/paginated — `datatable.go`). The earlier "covered by Sheet/Menubar/Table" rationale was reversed to match shadcn 1:1.
+
+**Omitted (D), final:** NativeSelect (no native `<select>` in a Go GPU GUI — `Select` *is* the equivalent), legacy Toast (Sonner only — `sonner.go`), Direction/RTL (blocked on gogpu/ui's text layer adding bidi shaping), react-hook-form Form (replaced by signal-backed `graft.Form`, §4).
 
 ---
 
@@ -551,7 +553,8 @@ Phase 1 exit: login-card and settings examples compile and match references visu
 ### Phase 3 — Tier 3 (parallel, any order ∥)
 Command (+CommandDialog; uses listview painter, Dialog, FocusManager shortcut), Breadcrumb, Pagination (reuses Button), Empty, Kbd, HoverCard (popover hover trigger + delay), InputOTP, Carousel, Chart (+linechart painter), AspectRatio.
 
-**Permanently omitted:** NativeSelect, Drawer, legacy Toast, NavigationMenu, Direction (§3.2 rationale).
+**Added 2026-06-14 (gap-closure pass):** Drawer, NavigationMenu, DataTable (§3.2).
+**Omitted, final:** NativeSelect (= Select), legacy Toast (= Sonner), Direction/RTL (gogpu text-layer limitation) (§3.2 rationale).
 
 ---
 
