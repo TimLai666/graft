@@ -1,6 +1,9 @@
 package graft
 
 import (
+	"time"
+
+	"github.com/gogpu/ui/animation"
 	"github.com/gogpu/ui/event"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/icon"
@@ -36,10 +39,14 @@ const (
 // host. It reuses Dialog's modal chassis pattern (full-window black@50%
 // backdrop, Esc + backdrop dismissal) but anchors the panel to a viewport
 // edge instead of centering it, and the panel spans the full cross-axis with
-// a single 1px border on its inner edge. The shadcn slide-in (500ms in /
-// 300ms out, ease-in-out) is the open/close transition; goldens render the
-// SETTLED open state, so the slide offset is zero there. Animation timing is
-// recorded in metrics.SheetOpenDurationMillis / SheetCloseDurationMillis.
+// a single 1px border on its inner edge. On open the panel slides in from its
+// edge over SheetOpenDurationMillis (the shadcn slide-in), driven by an
+// animation.Controller ticked in the overlay's Draw (the switch.go pattern);
+// the backdrop fades in with it. Close currently snaps (immediate overlay
+// removal) — a slide-out would need deferred removal, which conflicts with the
+// synchronous overlay lifecycle the host tests rely on. Goldens render the
+// SETTLED open state (SheetPreview, no overlay), so the slide offset is zero
+// there.
 type SheetWidget struct {
 	widget.WidgetBase
 
@@ -218,10 +225,21 @@ type sheetOverlayWidget struct {
 	content    *SheetContentWidget
 	windowSize geometry.Size
 	onDismiss  func()
+
+	// progress is the slide-in position: 0 = panel fully off-screen at its edge,
+	// 1 = settled open. It animates 0→1 on open (the shadcn slide-in) via an
+	// animation.Controller ticked in Draw (the switch.go pattern). The backdrop
+	// alpha tracks progress so it fades in with the panel.
+	progress    float32
+	animCtrl    *animation.Controller
+	animAdpt    sheetProgress
+	animStarted bool
 }
 
 func newSheetOverlay(content *SheetContentWidget, windowSize geometry.Size, onDismiss func()) *sheetOverlayWidget {
-	o := &sheetOverlayWidget{content: content, windowSize: windowSize, onDismiss: onDismiss}
+	o := &sheetOverlayWidget{content: content, windowSize: windowSize, onDismiss: onDismiss,
+		animCtrl: animation.NewController()}
+	o.animAdpt.o = o
 	o.SetVisible(true)
 	o.SetEnabled(true)
 	o.AddChild(content)
@@ -239,8 +257,95 @@ func (o *sheetOverlayWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if canvas == nil {
 		return
 	}
-	canvas.DrawRect(o.Bounds(), widget.RGBA(0, 0, 0, metrics.OverlayAlpha))
+	// Kick off the slide-in on the first paint (ctx is available here), then
+	// advance it. When idle, snap fully open (progress 1) so a settled sheet is
+	// always at its edge regardless of render mode.
+	if !o.animStarted {
+		o.animStarted = true
+		o.startOpen(ctx)
+	}
+	o.tickAnim(ctx)
+
+	// Backdrop fades in with the panel.
+	canvas.DrawRect(o.Bounds(), widget.RGBA(0, 0, 0, metrics.OverlayAlpha*o.progress))
+
+	// Panel slides from its edge by the remaining (1-progress) of its extent.
+	off := o.slideOffset()
+	canvas.PushTransform(off)
 	o.content.Draw(ctx, canvas)
+	canvas.PopTransform()
+}
+
+// slideOffset returns the panel's current draw translation: zero when settled
+// (progress 1), a full panel extent toward the edge when closed (progress 0).
+func (o *sheetOverlayWidget) slideOffset() geometry.Point {
+	d := 1 - o.progress
+	if d <= 0 {
+		return geometry.Pt(0, 0)
+	}
+	b := o.content.Bounds()
+	switch o.content.side {
+	case SheetLeft:
+		return geometry.Pt(-b.Width()*d, 0)
+	case SheetTop:
+		return geometry.Pt(0, -b.Height()*d)
+	case SheetBottom:
+		return geometry.Pt(0, b.Height()*d)
+	default: // SheetRight
+		return geometry.Pt(b.Width()*d, 0)
+	}
+}
+
+// startOpen tweens progress 0→1 over SheetOpenDurationMillis with the shadcn
+// ease, driven by the controller ticked in Draw.
+func (o *sheetOverlayWidget) startOpen(ctx widget.Context) {
+	if o.animCtrl == nil {
+		o.progress = 1
+		return
+	}
+	o.animAdpt.ctx = ctx
+	animation.To(&o.animAdpt, 1).
+		From(0).
+		Duration(time.Duration(metrics.SheetOpenDurationMillis) * time.Millisecond).
+		Ease(animation.CubicBezier(0.4, 0, 0.2, 1)).
+		Start(o.animCtrl)
+}
+
+// tickAnim advances the slide-in while active; snaps to settled-open when idle.
+func (o *sheetOverlayWidget) tickAnim(ctx widget.Context) {
+	if o.animCtrl == nil || !o.animCtrl.HasActive() {
+		o.progress = 1
+		return
+	}
+	dt := ctx.DeltaTime()
+	if dt < time.Millisecond {
+		dt = time.Millisecond
+	}
+	if dt > 32*time.Millisecond {
+		dt = 32 * time.Millisecond
+	}
+	o.animCtrl.Tick(dt)
+	if o.animCtrl.HasActive() {
+		o.SetNeedsRedraw(true)
+		ctx.Invalidate()
+	}
+}
+
+// sheetProgress adapts the overlay's progress field to animation.To's
+// signalFloat32 interface, marking the overlay dirty each frame.
+type sheetProgress struct {
+	o   *sheetOverlayWidget
+	ctx widget.Context
+}
+
+func (a *sheetProgress) Get() float32 { return a.o.progress }
+
+func (a *sheetProgress) Set(v float32) {
+	a.o.progress = v
+	a.o.SetNeedsRedraw(true)
+	if a.ctx != nil {
+		a.ctx.Invalidate()
+	}
 }
 
 func (o *sheetOverlayWidget) Event(ctx widget.Context, e event.Event) bool {
