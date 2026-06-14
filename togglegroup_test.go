@@ -37,9 +37,9 @@ func TestToggleGroupSpecFusedLayout(t *testing.T) {
 	i1 := items[1].(bounded)
 	i2 := items[2].(bounded)
 
-	// Group height = toggle default height.
-	if !approx(g.Bounds().Height(), metrics.Toggle.Default.Height) {
-		t.Fatalf("group height = %v, want %v", g.Bounds().Height(), metrics.Toggle.Default.Height)
+	// Group height = toggle-group item height (h-8).
+	if !approx(g.Bounds().Height(), metrics.ToggleGroup.ItemHeight) {
+		t.Fatalf("group height = %v, want %v", g.Bounds().Height(), metrics.ToggleGroup.ItemHeight)
 	}
 	// Segments overlap by 1px (fused borders).
 	if !approx(i1.Bounds().Min.X, i0.Bounds().Max.X-metrics.ToggleGroup.Overlap) {

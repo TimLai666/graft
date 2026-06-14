@@ -79,8 +79,8 @@ func TestDialogContentLayout(t *testing.T) {
 	if card.Color != tok.Background {
 		t.Errorf("card fill: got %+v want background %+v", card.Color, tok.Background)
 	}
-	if card.Radius != graft.CurrentTheme().RadiusLG() {
-		t.Errorf("card radius: got %v want LG %v", card.Radius, graft.CurrentTheme().RadiusLG())
+	if card.Radius != graft.CurrentTheme().RadiusXL() {
+		t.Errorf("card radius: got %v want XL %v", card.Radius, graft.CurrentTheme().RadiusXL())
 	}
 
 	// Inside border stroke in Border color, width 1.

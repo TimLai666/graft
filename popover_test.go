@@ -96,9 +96,9 @@ func TestPopoverContentGeometry(t *testing.T) {
 	if bg < 0 {
 		t.Fatalf("no bg-popover fill recorded: %+v", mc.RoundRects)
 	}
-	if got := mc.RoundRects[bg]; got.Radius != th.RadiusMD() ||
+	if got := mc.RoundRects[bg]; got.Radius != th.RadiusLG() ||
 		got.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
-		t.Errorf("bg fill = %+v, want radius %v full bounds", got, th.RadiusMD())
+		t.Errorf("bg fill = %+v, want radius %v full bounds", got, th.RadiusLG())
 	}
 
 	// shadow-md: the ShadowMD layers paint before the fill.
@@ -115,7 +115,7 @@ func TestPopoverContentGeometry(t *testing.T) {
 		t.Errorf("border = %+v, want 1px border token", st)
 	}
 	if st.Bounds != geometry.NewRect(0.5, 0.5, size.Width-1, size.Height-1) ||
-		st.Radius != th.RadiusMD()-0.5 {
+		st.Radius != th.RadiusLG()-0.5 {
 		t.Errorf("border not inside-stroked: %+v", st)
 	}
 
