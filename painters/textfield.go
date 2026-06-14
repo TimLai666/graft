@@ -19,12 +19,12 @@ import (
 // substantial. core/textfield routes all visuals through this Painter and its
 // PaintState carries NO ColorScheme — every color is resolved here from the
 // painter's Theme via Active() at paint time, so light/dark switches repaint
-// without reinstalling the painter. The control height (36px, h-9) is NOT
+// without reinstalling the painter. The control height (32px, h-8) is NOT
 // reachable through core/textfield's fixed 48px Layout, so the graft
 // InputWidget overrides Layout; this painter draws within whatever Bounds it
 // is given.
 //
-// Recipe per the spec: radius MD, 1px Input border via draw.InsideBorder,
+// Recipe per the spec: radius LG, 1px Input border via draw.InsideBorder,
 // transparent bg (dark: Input/30 via draw.MulAlpha), shadow-xs, font 14px
 // Geist 400, placeholder MutedForeground, text Foreground, selection bg
 // Primary + fg PrimaryForeground, caret 1px Foreground. Focus: solid Ring
@@ -39,7 +39,7 @@ func (p TextField) PaintTextField(canvas widget.Canvas, st textfield.PaintState)
 	tok := th.Active()
 	dark := th.IsDark()
 	bounds := st.Bounds
-	radius := th.RadiusMD()
+	radius := th.RadiusLG()
 	disabled := st.Disabled
 
 	// Shadow-xs sits under the fill (drawn first, only when not disabled —

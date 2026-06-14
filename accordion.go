@@ -20,7 +20,7 @@ import (
 // content, separated by 1px bottom borders.
 //
 // Architecture decision (DESIGN.md 3.1/3.2): graft-OWNED. shadcn's Accordion
-// is a Radix primitive with a precise anatomy — item border-b, py-4 trigger
+// is a Radix primitive with a precise anatomy — item border-b, py-2.5 trigger
 // with a justify-between right chevron that rotates 180° on open, hover
 // underline, pt-0/pb-4 content, accordion-down/up height animation — that no
 // core/* gogpu widget expresses (core/collapsible owns a different styled
@@ -398,7 +398,7 @@ func (it *AccordionItemWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	// ring-[3px] ring-ring/50) hugging the row rect.
 	if it.focusVisible {
 		rowRect := geometry.NewRect(bounds.Min.X, bounds.Min.Y, bounds.Width(), it.triggerH)
-		radius := th.RadiusMD() // rounded-md
+		radius := th.RadiusLG() // rounded-lg
 		draw.InsideBorder(canvas, rowRect, radius, tok.Ring, 1)
 		draw.FocusRing(canvas, rowRect, radius, draw.Alpha(tok.Ring, metrics.RingAlpha))
 	}

@@ -1,16 +1,16 @@
 package metrics
 
 // Select holds the pixel metrics for the shadcn Select component
-// (trigger + content + item). Every value is annotated with its source
-// Tailwind class string from the new-york-v4 registry (Report 3 §5
-// "Select"). Radii route through the theme (RadiusMD for the trigger and
-// content, RadiusSM for items) so the user's --radius knob propagates.
+// (trigger + content + item). Values are annotated with their source
+// Tailwind class string (current ui.shadcn.com live style). Radii route
+// through the theme (RadiusLG for the trigger, RadiusMD for the content,
+// RadiusSM for items) so the user's --radius knob propagates.
 //
 // Source trigger:
 //
-//	"flex w-fit items-center justify-between gap-2 rounded-md border
-//	 border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap
-//	 shadow-xs ... data-[size=default]:h-9 data-[size=sm]:h-8 ...
+//	"flex w-fit items-center justify-between gap-1.5 rounded-lg border
+//	 border-input bg-transparent px-2.5 py-2 text-sm whitespace-nowrap
+//	 shadow-xs ... data-[size=default]:h-8 data-[size=sm]:h-8 ...
 //	 dark:bg-input/30 dark:hover:bg-input/50 ... [&_svg]:size-4
 //	 [&_svg]:text-muted-foreground" + chevron "size-4 opacity-50"
 //
@@ -27,13 +27,13 @@ package metrics
 //	 [&_svg]:size-4"; check indicator "absolute right-2 ... size-3.5"
 //	 with CheckIcon size-4.
 var Select = struct {
-	// TriggerHeight is the default trigger height (data-[size=default]:h-9).
+	// TriggerHeight is the default trigger height (data-[size=default]:h-8).
 	TriggerHeight float32
 	// TriggerHeightSm is the small trigger height (data-[size=sm]:h-8).
 	TriggerHeightSm float32
-	// TriggerPadX is the trigger horizontal padding (px-3).
+	// TriggerPadX is the trigger horizontal padding (px-2.5).
 	TriggerPadX float32
-	// TriggerGap is the gap between trigger text and chevron (gap-2).
+	// TriggerGap is the gap between trigger text and chevron (gap-1.5).
 	TriggerGap float32
 	// BorderWidth is the trigger/content border width (border = 1px).
 	BorderWidth float32
@@ -74,10 +74,10 @@ var Select = struct {
 	// ⇒ 400).
 	FontWeight int
 }{
-	TriggerHeight:   36, // h-9
+	TriggerHeight:   32, // h-8
 	TriggerHeightSm: 32, // h-8
-	TriggerPadX:     12, // px-3
-	TriggerGap:      8,  // gap-2
+	TriggerPadX:     10, // px-2.5
+	TriggerGap:      6,  // gap-1.5
 	BorderWidth:     1,  // border
 	FontSize:        14, // text-sm
 	ChevronSize:     16, // size-4

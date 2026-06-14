@@ -4,7 +4,7 @@ package metrics
 // (docs/research/03-shadcn-pixel-spec.md "Accordion", quoted verbatim there).
 //
 // Item:    "border-b last:border-b-0".
-// Trigger: "flex flex-1 items-start justify-between gap-4 rounded-md py-4
+// Trigger: "flex flex-1 items-start justify-between gap-4 rounded-lg py-2.5
 //
 //	text-left text-sm font-medium transition-all outline-none
 //	hover:underline focus-visible:border-ring focus-visible:ring-[3px]
@@ -22,7 +22,7 @@ package metrics
 // The content collapse is the accordion-down/up keyframe (height 0 ↔ natural,
 // 0.2s ease-out). Goldens render the settled state.
 var Accordion = struct {
-	// TriggerPadY is the trigger vertical padding in px (py-4 = 16).
+	// TriggerPadY is the trigger vertical padding in px (py-2.5 = 10).
 	TriggerPadY float32
 
 	// TriggerGap is the gap between the trigger label and the chevron in px
@@ -68,7 +68,7 @@ var Accordion = struct {
 	// (accordion-down/up 0.2s ease-out; chevron transition-transform 200ms).
 	DurationMS float32
 }{
-	TriggerPadY:       16,  // py-4
+	TriggerPadY:       10,  // py-2.5
 	TriggerGap:        16,  // gap-4
 	TriggerFontSize:   14,  // text-sm
 	TriggerLineHeight: 20,  // text-sm line height

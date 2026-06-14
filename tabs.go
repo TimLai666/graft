@@ -248,7 +248,7 @@ func (t *TabsWidget) Unmount() {}
 
 // ── TabsList ────────────────────────────────────────────────────────────
 
-// TabsListWidget is the trigger row: inline w-fit, h-9, rounded-lg,
+// TabsListWidget is the trigger row: inline w-fit, h-8, rounded-lg,
 // p-[3px], bg-muted (line variant: transparent, gap-1).
 type TabsListWidget struct {
 	widget.WidgetBase
@@ -445,8 +445,8 @@ func tabsFontFamily(th *theme.Theme, weight int) string {
 	return fonts.Family(weight)
 }
 
-// Layout measures the trigger: label width + px-2 each side, height from
-// the list's inner height (29px at default metrics).
+// Layout measures the trigger: label width + px-1.5 each side, height from
+// the list's inner height (25px at default metrics).
 func (tr *TabsTriggerWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	m := metrics.Tabs
 	w := textmetrics.Width(tabsFontFamily(tr.st.th, m.TriggerFontWeight), m.TriggerFontSize, tr.label) + 2*m.TriggerPadX

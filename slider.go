@@ -17,7 +17,7 @@ import (
 // gogpu/ui core/slider widget — it contributes the drag, pointer-capture,
 // and keyboard machinery — and styles it with painters.Slider. The core
 // Layout is fully constrainable via tight constraints, so shadcn's exact
-// pixels (16px-high root, full-width track) are reachable without a
+// pixels (12px-high root, full-width track) are reachable without a
 // graft-owned reimplementation. The wrapper owns sizing (.W / w-full) and
 // theme injection; all visuals live in painters/slider.go + metrics/slider.go.
 //
@@ -125,7 +125,7 @@ func (s *SliderWidget) ensureCore() *slider.Widget {
 }
 
 // Layout sizes the slider: explicit .W, else the bounded container width
-// (w-full), else metrics.Slider.DefaultWidth; height is the 16px thumb.
+// (w-full), else metrics.Slider.DefaultWidth; height is the 12px thumb.
 func (s *SliderWidget) Layout(ctx widget.Context, c geometry.Constraints) geometry.Size {
 	core := s.ensureCore()
 	w := s.width

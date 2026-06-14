@@ -11,7 +11,7 @@ import (
 	"github.com/TimLai666/graft/theme"
 )
 
-// ProgressWidget is graft's determinate progress bar: a full-width 8px pill
+// ProgressWidget is graft's determinate progress bar: a full-width 4px pill
 // whose track is the Primary token at 20% and whose indicator fills the pill
 // left→right by the current value (0..100), matching the shadcn Progress
 // (docs/research/03-shadcn-pixel-spec.md §5).
@@ -88,7 +88,7 @@ func (p *ProgressWidget) Mount(ctx widget.Context) {
 // Unmount is a no-op; CleanupBindings runs automatically before it.
 func (p *ProgressWidget) Unmount() {}
 
-// Layout makes the bar full-width and 8px tall.
+// Layout makes the bar full-width and 4px tall.
 func (p *ProgressWidget) Layout(_ widget.Context, c geometry.Constraints) geometry.Size {
 	w := c.MaxWidth
 	if w <= 0 || w > 100000 {

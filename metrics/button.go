@@ -3,10 +3,10 @@ package metrics
 // Button metrics transcribed from the shadcn new-york-v4 buttonVariants cva
 // (docs/research/03-shadcn-pixel-spec.md §5 "Button", quoted verbatim there).
 //
-// Base classes: "inline-flex shrink-0 items-center justify-center gap-2
-// rounded-md text-sm font-medium ... [&_svg:not([class*='size-'])]:size-4".
-// The corner radius is rounded-md and routes through the theme
-// (Theme.RadiusMD, 8px at the default --radius of 10).
+// Base classes: "inline-flex shrink-0 items-center justify-center gap-1.5
+// rounded-lg text-sm font-medium ... [&_svg:not([class*='size-'])]:size-4".
+// The corner radius is rounded-lg and routes through the theme
+// (Theme.RadiusLG, 10px at the default --radius of 10).
 
 // ButtonSize holds the pixel metrics of one buttonVariants size variant.
 type ButtonSize struct {
@@ -41,7 +41,8 @@ type ButtonSize struct {
 
 // Button collects every pixel constant of the shadcn Button component.
 var Button = struct {
-	// Default is size "default": h-9 px-4 py-2 has-[>svg]:px-3.
+	// Default is size "default": h-8 px-2.5 py-2 gap-1.5 has-[>svg]:px-2
+	// (current ui.shadcn.com live style; rounded-lg via the theme).
 	Default ButtonSize
 
 	// XS is size "xs": h-6 gap-1 rounded-md px-2 text-xs
@@ -109,7 +110,7 @@ var Button = struct {
 	// alpha multiplier on the Input token (dark:hover:bg-input/50).
 	DarkOutlineHoverAlpha float32
 }{
-	Default: ButtonSize{Height: 36, PadX: 16, PadXWithIcon: 12, PadY: 8, Gap: 8, FontSize: 14, IconSize: 16},
+	Default: ButtonSize{Height: 32, PadX: 10, PadXWithIcon: 8, PadY: 8, Gap: 6, FontSize: 14, IconSize: 16},
 	XS:      ButtonSize{Height: 24, PadX: 8, PadXWithIcon: 6, Gap: 4, FontSize: 12, IconSize: 12},
 	SM:      ButtonSize{Height: 32, PadX: 12, PadXWithIcon: 10, Gap: 6, FontSize: 14, IconSize: 16},
 	LG:      ButtonSize{Height: 40, PadX: 24, PadXWithIcon: 16, Gap: 8, FontSize: 14, IconSize: 16},

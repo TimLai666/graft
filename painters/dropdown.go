@@ -59,7 +59,7 @@ func (p Dropdown) paintTrigger(canvas widget.Canvas, st *dropdown.TriggerPaintSt
 	dark := th.IsDark()
 	m := metrics.Select
 	bounds := st.Bounds
-	radius := th.RadiusMD()
+	radius := th.RadiusLG() // trigger: rounded-lg
 	disabled := st.Disabled
 
 	// Shadow (shadow-xs) sits under the fill.
