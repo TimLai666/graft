@@ -247,7 +247,12 @@ func (o *dialogOverlayWidget) Layout(ctx widget.Context, c geometry.Constraints)
 	if y < 0 {
 		y = 0
 	}
+	// Position the card, then re-layout it: DialogContentWidget.Layout positions
+	// its children relative to its own Position(), which was (0,0) on the first
+	// pass above — so without this second pass the card background centers but
+	// its children (header/content/footer) stay pinned at the window's top-left.
 	o.content.SetBounds(geometry.FromPointSize(geometry.Pt(x, y), contentSize))
+	o.content.Layout(ctx, geometry.Loose(size))
 	return size
 }
 
@@ -412,6 +417,11 @@ func (c *DialogContentWidget) Layout(ctx widget.Context, cons geometry.Constrain
 		if i > 0 {
 			cursorY += metrics.DialogGap
 		}
+		// Position the child BEFORE laying it out: container children (header/
+		// footer DialogSectionWidget) position their own descendants relative to
+		// their Position(), so it must be correct when their Layout runs. Setting
+		// bounds afterwards (only) leaves nested content pinned at the origin.
+		setWidgetBounds(ch, geometry.FromPointSize(geometry.Pt(x, cursorY), geometry.Sz(innerW, 0)))
 		sz := ch.Layout(ctx, childCons)
 		setWidgetBounds(ch, geometry.FromPointSize(geometry.Pt(x, cursorY), geometry.Sz(innerW, sz.Height)))
 		cursorY += sz.Height

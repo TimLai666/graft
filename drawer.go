@@ -635,6 +635,10 @@ func (c *DrawerContentWidget) layoutChildren(ctx widget.Context, origin geometry
 		if i > 0 {
 			cursorY += metrics.DrawerGap
 		}
+		// Position the child before layout so container children (header/footer
+		// DrawerSectionWidget) position their own descendants relative to the
+		// correct origin rather than a stale (0,0). See dialog.go for the same fix.
+		setWidgetBounds(ch, geometry.FromPointSize(geometry.Pt(x, cursorY), geometry.Sz(innerW, 0)))
 		sz := ch.Layout(ctx, childCons)
 		setWidgetBounds(ch, geometry.FromPointSize(geometry.Pt(x, cursorY), geometry.Sz(innerW, sz.Height)))
 		cursorY += sz.Height

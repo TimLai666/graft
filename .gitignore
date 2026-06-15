@@ -16,3 +16,7 @@ testdata/golden/*.got.png
 
 # Runtime logs
 *.log
+
+# Local workaround: patched gogpu/ui fork wired via go.work replace, pending
+# upstream fix (gogpu/ui#133). Not committed — see go.work.
+.patched/
