@@ -465,7 +465,18 @@ func (b *ButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if v.shadow {
 		drawButtonShadow(canvas, bounds, radius, disabled)
 	}
-	if v.hasBg && v.bg.A > 0 {
+	// Fill + border. When the button has a border, paint both via BorderFill
+	// (convex fills) instead of a separate stroke — the GPU stroke path renders
+	// thin strokes as solid boxes. The border is resolved here (focus swaps it
+	// to the ring color) and the trailing stroke block below is skipped.
+	borderCol := v.border
+	if b.focusVisible && !disabled {
+		borderCol = tok.Ring // focus-visible:border-ring
+	}
+	switch {
+	case v.borderW > 0 && v.hasBg && v.bg.A > 0:
+		draw.BorderFill(canvas, bounds, draw.Fade(v.bg, disabled), draw.Fade(borderCol, disabled), radius, v.borderW)
+	case v.hasBg && v.bg.A > 0:
 		canvas.DrawRoundRect(bounds, draw.Fade(v.bg, disabled), radius)
 	}
 
@@ -515,13 +526,8 @@ func (b *ButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		canvas.PopTransform()
 	}
 
-	if v.borderW > 0 {
-		border := v.border
-		if b.focusVisible && !disabled {
-			border = tok.Ring // focus-visible:border-ring
-		}
-		draw.InsideBorder(canvas, bounds, radius, draw.Fade(border, disabled), v.borderW)
-	}
+	// Border is painted up-front via BorderFill (see the fill switch above);
+	// no separate stroke pass here.
 
 	if b.focusVisible && !disabled {
 		ring := draw.Alpha(tok.Ring, metrics.RingAlpha)

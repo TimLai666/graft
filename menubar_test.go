@@ -52,31 +52,44 @@ func TestMenubarBarGeometry(t *testing.T) {
 	bar.SetBounds(geometry.FromPointSize(geometry.Pt(0, 0), size))
 	canvas := uitest.DrawWidget(bar)
 
-	// Bar surface: bg Background round-rect at radius MD, full bounds.
-	var surface *uitest.DrawRoundRectCall
+	bw := metrics.MenubarBorderWidth
+
+	// BorderFill: outer Border round-rect at full bounds, inner Background
+	// surface inset by the border width.
+	var border *uitest.DrawRoundRectCall
 	for i := range canvas.RoundRects {
-		if canvas.RoundRects[i].Bounds.Size() == size && canvas.RoundRects[i].Color == tok.Background {
+		if canvas.RoundRects[i].Bounds.Size() == size && canvas.RoundRects[i].Color == tok.Border {
+			border = &canvas.RoundRects[i]
+			break
+		}
+	}
+	if border == nil {
+		t.Fatalf("no full-bounds Border bar round-rect at size %v", size)
+	}
+	if border.Radius != th.RadiusMD() {
+		t.Errorf("bar border radius = %v, want MD %v", border.Radius, th.RadiusMD())
+	}
+
+	var surface *uitest.DrawRoundRectCall
+	innerSize := geometry.Sz(size.Width-2*bw, size.Height-2*bw)
+	for i := range canvas.RoundRects {
+		if canvas.RoundRects[i].Bounds.Size() == innerSize && canvas.RoundRects[i].Color == tok.Background {
 			surface = &canvas.RoundRects[i]
 			break
 		}
 	}
 	if surface == nil {
-		t.Fatalf("no bar Background surface at size %v", size)
+		t.Fatalf("no inset Background bar surface at size %v", innerSize)
 	}
-	if surface.Radius != th.RadiusMD() {
-		t.Errorf("bar radius = %v, want MD %v", surface.Radius, th.RadiusMD())
+	if surface.Radius != th.RadiusMD()-bw {
+		t.Errorf("bar surface radius = %v, want %v", surface.Radius, th.RadiusMD()-bw)
 	}
 
-	// 1px inside border in the Border token.
-	var border *uitest.StrokeRoundRectCall
-	for i := range canvas.StrokeRoundRects {
-		if canvas.StrokeRoundRects[i].StrokeWidth == metrics.MenubarBorderWidth {
-			border = &canvas.StrokeRoundRects[i]
-			break
+	// No 1px border stroke any more (border is now a fill).
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.MenubarBorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
 		}
-	}
-	if border == nil || border.Color != tok.Border {
-		t.Fatalf("no 1px Border bar stroke: %+v", border)
 	}
 }
 

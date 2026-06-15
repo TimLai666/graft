@@ -303,8 +303,9 @@ func (o *InputOTPWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 				borderColor = tok.Ring
 			}
 
-			// Border.
-			draw.InsideBorder(canvas, slotBounds, radius, draw.Fade(borderColor, disabled), m.BorderWidth)
+			// Border. BorderFill (fill = page background) instead of an
+			// inside stroke, which renders as a solid gray box on the GPU.
+			draw.BorderFill(canvas, slotBounds, tok.Background, draw.Fade(borderColor, disabled), radius, m.BorderWidth)
 
 			// Character in the slot.
 			if slotIdx < len(val) {

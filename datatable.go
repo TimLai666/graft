@@ -700,18 +700,21 @@ func (d *DataTableWidget) drawCheckbox(canvas widget.Canvas, th *theme.Theme, to
 
 	draw.Shadow(canvas, box, radius, metrics.ShadowXS)
 
+	boxBg := tok.Background
 	switch {
 	case marked:
-		canvas.DrawRoundRect(box, tok.Primary, radius)
+		boxBg = tok.Primary
 	case th.IsDark():
-		canvas.DrawRoundRect(box, draw.MulAlpha(tok.Input, metrics.Checkbox.DarkFillAlpha), radius)
+		boxBg = draw.MulAlpha(tok.Input, metrics.Checkbox.DarkFillAlpha)
 	}
 
 	borderColor := tok.Input
 	if marked {
 		borderColor = tok.Primary
 	}
-	draw.InsideBorder(canvas, box, radius, borderColor, metrics.Checkbox.BorderWidth)
+	// BorderFill (fill + ring) instead of an inside stroke, which renders as
+	// a solid gray box on the GPU.
+	draw.BorderFill(canvas, box, boxBg, borderColor, radius, metrics.Checkbox.BorderWidth)
 
 	if marked {
 		ic := icons.Check

@@ -11,6 +11,13 @@ import (
 // Canvas strokes are center-drawn, so the stroke is inset by w/2 and the
 // radius reduced by w/2 (clamped at zero). All 1px component borders in
 // graft go through this helper.
+//
+// NOTE: the GPU scene renderer currently fills thin round-rect strokes as solid
+// boxes (gg bug, reported upstream). Prefer [BorderFill] for any element that
+// has a fill behind the border — it composes the border from convex fills,
+// which render correctly. InsideBorder remains for border-only cases (no fill
+// to redraw, e.g. focus rings and separators) where the artifact is absent or
+// acceptable.
 func InsideBorder(c widget.Canvas, bounds geometry.Rect, radius float32, col widget.Color, w float32) {
 	if w <= 0 {
 		return
@@ -20,6 +27,28 @@ func InsideBorder(c widget.Canvas, bounds geometry.Rect, radius float32, col wid
 		r = 0
 	}
 	c.StrokeRoundRect(bounds.Expand(-w/2), col, r, w)
+}
+
+// BorderFill paints a filled rounded rect with a w-px inner (border-box) border,
+// composed from two convex fills: an outer round-rect in the border color, then
+// an inset round-rect in the fill color. This avoids the canvas stroke path,
+// which the GPU scene renderer mis-renders for thin strokes (fills the whole
+// shape solid). Call it where the element fill would be drawn; paint content on
+// top afterward. With w<=0 it degrades to a plain filled round-rect.
+//
+// The fill must be opaque for the border to read as a thin ring (a translucent
+// fill lets the underlying border color show through the interior).
+func BorderFill(c widget.Canvas, bounds geometry.Rect, fill, border widget.Color, radius, w float32) {
+	if w <= 0 {
+		c.DrawRoundRect(bounds, fill, radius)
+		return
+	}
+	c.DrawRoundRect(bounds, border, radius)
+	ir := radius - w
+	if ir < 0 {
+		ir = 0
+	}
+	c.DrawRoundRect(bounds.Expand(-w), fill, ir)
 }
 
 // Corners is a bitmask selecting rectangle corners for [SquareCorners].

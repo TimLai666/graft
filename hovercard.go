@@ -279,8 +279,7 @@ func (c *HoverCardContentWidget) Draw(ctx widget.Context, canvas widget.Canvas) 
 	bounds := c.Bounds()
 
 	draw.Shadow(canvas, bounds, r, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, r)
-	draw.InsideBorder(canvas, bounds, r, tok.Border, metrics.HoverCardBorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, r, metrics.HoverCardBorderWidth)
 
 	canvas.PushTransform(bounds.Min)
 	for _, ch := range c.children {

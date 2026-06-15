@@ -291,8 +291,7 @@ func (c *datePickerContent) Draw(ctx widget.Context, canvas widget.Canvas) {
 	bounds := c.Bounds()
 
 	draw.Shadow(canvas, bounds, r, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, r)
-	draw.InsideBorder(canvas, bounds, r, tok.Border, metrics.Popover.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, r, metrics.Popover.BorderWidth)
 
 	canvas.PushTransform(bounds.Min)
 	widget.StampScreenOrigin(c.cal, canvas)

@@ -621,8 +621,7 @@ func (tr *TabsTriggerWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 		if dark {
 			// dark:data-[state=active]:bg-input/30 + border-input.
 			bg := draw.MulAlpha(tok.Input, m.DarkActiveBgOpacity)
-			canvas.DrawRoundRect(bounds, draw.Fade(bg, tr.disabled), radius)
-			draw.InsideBorder(canvas, bounds, radius, draw.Fade(tok.Input, tr.disabled), m.TriggerBorderWidth)
+			draw.BorderFill(canvas, bounds, draw.Fade(bg, tr.disabled), draw.Fade(tok.Input, tr.disabled), radius, m.TriggerBorderWidth)
 		} else {
 			// data-[state=active]:bg-background.
 			canvas.DrawRoundRect(bounds, draw.Fade(tok.Background, tr.disabled), radius)

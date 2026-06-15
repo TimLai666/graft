@@ -75,16 +75,22 @@ func TestSelectTriggerDefault(t *testing.T) {
 	s := graft.Select(graft.SelectItem("a", "Apple")).Placeholder("Pick a fruit")
 	c := drawSelectTrigger(t, s)
 
-	// Inside border in --input (1px), no fill in light mode.
-	if len(c.StrokeRoundRects) != 1 {
-		t.Fatalf("expected exactly 1 border stroke, got %d", len(c.StrokeRoundRects))
+	// BorderFill in light mode: outer round-rect = --input border at full
+	// bounds, inner round-rect = page Background fill. No border stroke.
+	if len(c.StrokeRoundRects) != 0 {
+		t.Fatalf("expected 0 border strokes (border now a fill), got %d", len(c.StrokeRoundRects))
 	}
-	border := c.StrokeRoundRects[0]
-	if border.StrokeWidth != metrics.Select.BorderWidth {
-		t.Errorf("border width = %v, want %v", border.StrokeWidth, metrics.Select.BorderWidth)
+	var border *uitest.DrawRoundRectCall
+	for idx := range c.RoundRects {
+		if c.RoundRects[idx].Color == tok.Input {
+			border = &c.RoundRects[idx]
+		}
 	}
-	if border.Color != tok.Input {
-		t.Errorf("border color = %v, want input %v", border.Color, tok.Input)
+	if border == nil {
+		t.Fatalf("no --input border round-rect found")
+	}
+	if border.Bounds != s.Bounds() {
+		t.Errorf("border bounds = %v, want full trigger bounds %v", border.Bounds, s.Bounds())
 	}
 	// Placeholder text is muted-foreground.
 	if len(c.StyledTexts) != 1 {
@@ -134,21 +140,27 @@ func TestSelectTriggerFocused(t *testing.T) {
 	// Expect a focus ring stroke: width 3 at Expand(1.5), radius+1.5,
 	// ring@0.5.
 	wantRing := widget.Color{R: tok.Ring.R, G: tok.Ring.G, B: tok.Ring.B, A: metrics.RingAlpha}
-	var foundRing, foundSolidBorder bool
+	var foundRing bool
 	for _, sr := range c.StrokeRoundRects {
 		if sr.StrokeWidth == metrics.RingWidth && sr.Color == wantRing &&
 			sr.Bounds == bounds.Expand(metrics.RingWidth/2) && sr.Radius == radius+metrics.RingWidth/2 {
 			foundRing = true
 		}
-		if sr.StrokeWidth == metrics.Select.BorderWidth && sr.Color == tok.Ring {
-			foundSolidBorder = true
-		}
 	}
 	if !foundRing {
 		t.Errorf("focus ring not drawn (ring=%v); strokes=%+v", wantRing, c.StrokeRoundRects)
 	}
+
+	// The solid focus border is now the outer BorderFill round-rect in Ring,
+	// at full bounds.
+	var foundSolidBorder bool
+	for _, rr := range c.RoundRects {
+		if rr.Color == tok.Ring && rr.Bounds == bounds && rr.Radius == radius {
+			foundSolidBorder = true
+		}
+	}
 	if !foundSolidBorder {
-		t.Errorf("solid ring border not drawn; strokes=%+v", c.StrokeRoundRects)
+		t.Errorf("solid ring border fill not drawn; round-rects=%+v", c.RoundRects)
 	}
 }
 
@@ -157,14 +169,21 @@ func TestSelectTriggerDisabled(t *testing.T) {
 	s := graft.Select(graft.SelectItem("a", "Apple")).Placeholder("Pick").Disabled(true)
 	c := drawSelectTrigger(t, s)
 
-	// Border is faded input (alpha halved).
-	if len(c.StrokeRoundRects) != 1 {
-		t.Fatalf("expected 1 border stroke, got %d", len(c.StrokeRoundRects))
+	// Border is faded input (alpha halved), now the outer BorderFill
+	// round-rect rather than a stroke.
+	if len(c.StrokeRoundRects) != 0 {
+		t.Fatalf("expected 0 border strokes (border now a fill), got %d", len(c.StrokeRoundRects))
 	}
 	wantBorder := tok.Input
 	wantBorder.A *= metrics.DisabledOpacity
-	if c.StrokeRoundRects[0].Color != wantBorder {
-		t.Errorf("disabled border = %v, want faded input %v", c.StrokeRoundRects[0].Color, wantBorder)
+	var foundBorder bool
+	for _, rr := range c.RoundRects {
+		if rr.Color == wantBorder {
+			foundBorder = true
+		}
+	}
+	if !foundBorder {
+		t.Errorf("disabled faded input border round-rect not found; round-rects=%+v", c.RoundRects)
 	}
 	// No shadow drawn when disabled.
 	for _, rr := range c.RoundRects {
@@ -178,11 +197,19 @@ func TestSelectTriggerInvalid(t *testing.T) {
 	tok := selectLightTheme(t)
 	s := graft.Select(graft.SelectItem("a", "Apple")).Placeholder("Pick").Invalid(true)
 	c := drawSelectTrigger(t, s)
-	if len(c.StrokeRoundRects) != 1 {
-		t.Fatalf("expected 1 border stroke, got %d", len(c.StrokeRoundRects))
+	// Not focus-visible: no focus ring, just a Destructive BorderFill (outer
+	// round-rect), no stroke.
+	if len(c.StrokeRoundRects) != 0 {
+		t.Fatalf("expected 0 border strokes (border now a fill), got %d", len(c.StrokeRoundRects))
 	}
-	if c.StrokeRoundRects[0].Color != tok.Destructive {
-		t.Errorf("invalid border = %v, want destructive %v", c.StrokeRoundRects[0].Color, tok.Destructive)
+	var foundBorder bool
+	for _, rr := range c.RoundRects {
+		if rr.Color == tok.Destructive {
+			foundBorder = true
+		}
+	}
+	if !foundBorder {
+		t.Errorf("invalid destructive border round-rect not found; round-rects=%+v", c.RoundRects)
 	}
 }
 

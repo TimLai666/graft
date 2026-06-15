@@ -40,32 +40,31 @@ func TestToastCardGeometry(t *testing.T) {
 	th := graft.CurrentTheme()
 	tok := th.Active()
 
-	// bg-popover fill at rounded-lg, full bounds.
-	bg := -1
-	for i, c := range mc.RoundRects {
-		if c.Color == tok.Popover {
-			bg = i
-			break
-		}
+	// BorderFill: outer border round-rect (full bounds) then inner bg-popover
+	// fill (inset by the 1px border). shadow-lg paints before both.
+	bw := metrics.Sonner.BorderWidth
+
+	border := mc.RoundRects[len(metrics.ShadowLG)]
+	if border.Color != tok.Border {
+		t.Errorf("border fill = %+v, want border token %v", border, tok.Border)
 	}
-	if bg < 0 {
-		t.Fatalf("no bg-popover fill: %+v", mc.RoundRects)
-	}
-	if got := mc.RoundRects[bg]; got.Radius != th.RadiusLG() ||
-		got.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
-		t.Errorf("bg fill = %+v, want radius %v full bounds", got, th.RadiusLG())
-	}
-	// shadow-lg layers paint before the fill.
-	if bg != len(metrics.ShadowLG) {
-		t.Errorf("fills before bg = %d, want %d shadow layers", bg, len(metrics.ShadowLG))
+	if border.Radius != th.RadiusLG() ||
+		border.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
+		t.Errorf("border fill = %+v, want radius %v full bounds", border, th.RadiusLG())
 	}
 
-	// 1px inside border in the border token.
-	if len(mc.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes = %d, want 1 border", len(mc.StrokeRoundRects))
+	bg := mc.RoundRects[len(metrics.ShadowLG)+1]
+	if bg.Color != tok.Popover {
+		t.Errorf("bg fill = %+v, want bg-popover %v", bg, tok.Popover)
 	}
-	if st := mc.StrokeRoundRects[0]; st.Color != tok.Border || st.StrokeWidth != metrics.Sonner.BorderWidth {
-		t.Errorf("border = %+v, want 1px border token", st)
+	if bg.Radius != th.RadiusLG()-bw ||
+		bg.Bounds != geometry.NewRect(bw, bw, size.Width-2*bw, size.Height-2*bw) {
+		t.Errorf("bg fill = %+v, want radius %v inset by %v", bg, th.RadiusLG()-bw, bw)
+	}
+
+	// No border stroke any more (border is now a fill).
+	if len(mc.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes = %d, want 0 (border now a fill)", len(mc.StrokeRoundRects))
 	}
 }
 

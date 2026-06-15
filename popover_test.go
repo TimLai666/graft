@@ -85,38 +85,34 @@ func TestPopoverContentGeometry(t *testing.T) {
 	tok := graft.CurrentTheme().Active()
 	th := graft.CurrentTheme()
 
-	// Background fill: bg-popover at rounded-md.
-	bg := -1
-	for i, c := range mc.RoundRects {
-		if c.Color == tok.Popover {
-			bg = i
-			break
-		}
+	// BorderFill: outer border round-rect (full bounds) then inner bg-popover
+	// fill (inset by the 1px border). shadow-md paints before both.
+	bw := metrics.Popover.BorderWidth
+
+	// Border round-rect = full bounds / full radius, in the border token,
+	// right after the shadow layers.
+	border := mc.RoundRects[len(metrics.ShadowMD)]
+	if border.Color != tok.Border {
+		t.Errorf("border fill = %+v, want border token %v", border, tok.Border)
 	}
-	if bg < 0 {
-		t.Fatalf("no bg-popover fill recorded: %+v", mc.RoundRects)
-	}
-	if got := mc.RoundRects[bg]; got.Radius != th.RadiusLG() ||
-		got.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
-		t.Errorf("bg fill = %+v, want radius %v full bounds", got, th.RadiusLG())
+	if border.Radius != th.RadiusLG() ||
+		border.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
+		t.Errorf("border fill = %+v, want radius %v full bounds", border, th.RadiusLG())
 	}
 
-	// shadow-md: the ShadowMD layers paint before the fill.
-	if bg != len(metrics.ShadowMD) {
-		t.Errorf("fills before bg = %d, want %d shadow layers", bg, len(metrics.ShadowMD))
+	// Inner bg-popover fill = inset by the border width, radius clamped by it.
+	bg := mc.RoundRects[len(metrics.ShadowMD)+1]
+	if bg.Color != tok.Popover {
+		t.Errorf("bg fill = %+v, want bg-popover %v", bg, tok.Popover)
+	}
+	if bg.Radius != th.RadiusLG()-bw ||
+		bg.Bounds != geometry.NewRect(bw, bw, size.Width-2*bw, size.Height-2*bw) {
+		t.Errorf("bg fill = %+v, want radius %v inset by %v", bg, th.RadiusLG()-bw, bw)
 	}
 
-	// 1px inside border in the border token.
-	if len(mc.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes = %d, want 1 border", len(mc.StrokeRoundRects))
-	}
-	st := mc.StrokeRoundRects[0]
-	if st.Color != tok.Border || st.StrokeWidth != metrics.Popover.BorderWidth {
-		t.Errorf("border = %+v, want 1px border token", st)
-	}
-	if st.Bounds != geometry.NewRect(0.5, 0.5, size.Width-1, size.Height-1) ||
-		st.Radius != th.RadiusLG()-0.5 {
-		t.Errorf("border not inside-stroked: %+v", st)
+	// No border stroke any more (border is now a fill).
+	if len(mc.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes = %d, want 0 (border now a fill)", len(mc.StrokeRoundRects))
 	}
 
 	// First child starts at the p-4 inset.

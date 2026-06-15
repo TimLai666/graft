@@ -156,14 +156,16 @@ func TestTabsSpecDarkActive(t *testing.T) {
 	if !foundBg {
 		t.Fatalf("dark active trigger fill (input/30) missing; roundrects: %+v", mc.RoundRects)
 	}
+	// The border is now the outer BorderFill round-rect in the full Input
+	// token (the inner fill is the alpha-multiplied input/30 checked above).
 	foundBorder := false
-	for _, sr := range mc.StrokeRoundRects {
-		if sr.Color == tok.Input && approx(sr.StrokeWidth, metrics.Tabs.TriggerBorderWidth) {
+	for _, rr := range mc.RoundRects {
+		if rr.Color == tok.Input {
 			foundBorder = true
 		}
 	}
 	if !foundBorder {
-		t.Fatalf("dark active trigger border (input) missing; strokes: %+v", mc.StrokeRoundRects)
+		t.Fatalf("dark active trigger border (input) missing; roundrects: %+v", mc.RoundRects)
 	}
 }
 

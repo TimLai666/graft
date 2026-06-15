@@ -60,25 +60,34 @@ func TestInputGroupSpecBorder(t *testing.T) {
 
 	radius := graft.CurrentTheme().RadiusLG()
 
-	var borders []uitest.StrokeRoundRectCall
-	for _, s := range canvas.StrokeRoundRects {
-		if s.StrokeWidth == metrics.InputGroup.BorderWidth {
-			borders = append(borders, s)
+	// BorderFill in light mode: outer round-rect = Input border at full
+	// bounds/radius, inner round-rect = Background fill inset by 1px.
+	var border, fill *uitest.DrawRoundRectCall
+	for idx := range canvas.RoundRects {
+		switch canvas.RoundRects[idx].Color {
+		case tok.Input:
+			border = &canvas.RoundRects[idx]
+		case tok.Background:
+			fill = &canvas.RoundRects[idx]
 		}
 	}
-	if len(borders) != 1 {
-		t.Fatalf("want 1 border stroke, got %d", len(borders))
+	if border == nil {
+		t.Fatal("no Input-colored border round-rect found")
 	}
-	if borders[0].Color != tok.Input {
-		t.Fatalf("border color: got %+v want Input", borders[0].Color)
+	if border.Radius != radius {
+		t.Fatalf("border radius: got %v want %v", border.Radius, radius)
 	}
-	if want := radius - metrics.InputGroup.BorderWidth/2; borders[0].Radius != want {
-		t.Fatalf("border radius: got %v want %v", borders[0].Radius, want)
+	if fill == nil {
+		t.Fatal("no Background-colored inner fill round-rect found")
+	}
+	if fill.Radius != radius-metrics.InputGroup.BorderWidth {
+		t.Fatalf("inner fill radius: got %v want %v", fill.Radius, radius-metrics.InputGroup.BorderWidth)
 	}
 
-	for _, rr := range canvas.RoundRects {
-		if rr.Color.A == 1 {
-			t.Fatalf("unexpected opaque fill in light mode: %+v", rr)
+	// No 1px border stroke any more (border is now a fill).
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.InputGroup.BorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
 		}
 	}
 }

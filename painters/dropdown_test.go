@@ -31,15 +31,18 @@ func TestDropdownPaintTriggerDefault(t *testing.T) {
 		IsPlaceholder: true,
 	})
 
-	if len(canvas.StrokeRoundRects) != 1 {
-		t.Fatalf("expected 1 border stroke, got %d", len(canvas.StrokeRoundRects))
+	// BorderFill: outer round-rect = --input border, no stroke.
+	if len(canvas.StrokeRoundRects) != 0 {
+		t.Fatalf("expected 0 border strokes (border now a fill), got %d", len(canvas.StrokeRoundRects))
 	}
-	b := canvas.StrokeRoundRects[0]
-	if b.StrokeWidth != metrics.Select.BorderWidth {
-		t.Errorf("border width = %v, want %v", b.StrokeWidth, metrics.Select.BorderWidth)
+	var foundBorder bool
+	for _, rr := range canvas.RoundRects {
+		if rr.Color == tok.Input {
+			foundBorder = true
+		}
 	}
-	if b.Color != tok.Input {
-		t.Errorf("border color = %v, want input %v", b.Color, tok.Input)
+	if !foundBorder {
+		t.Errorf("--input border round-rect not found; round-rects=%+v", canvas.RoundRects)
 	}
 	if len(canvas.StyledTexts) != 1 || canvas.StyledTexts[0].Style.Color != tok.MutedForeground {
 		t.Errorf("placeholder text not drawn in muted-foreground; texts=%+v", canvas.StyledTexts)
@@ -84,10 +87,10 @@ func TestDropdownPaintMenu(t *testing.T) {
 	if !foundAccent {
 		t.Error("highlighted item accent fill not drawn")
 	}
-	// Menu border stroke in --border.
+	// Menu border is now the outer BorderFill round-rect in --border.
 	foundBorder := false
-	for _, sr := range canvas.StrokeRoundRects {
-		if sr.Color == tok.Border && sr.StrokeWidth == metrics.Select.BorderWidth {
+	for _, rr := range canvas.RoundRects {
+		if rr.Color == tok.Border {
 			foundBorder = true
 		}
 	}

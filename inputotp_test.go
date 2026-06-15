@@ -232,15 +232,22 @@ func TestInputOTPSpecEmptyLight(t *testing.T) {
 	laidOutInputOTP(o)
 	canvas := uitest.DrawWidget(o)
 
-	// Should have slot borders using Input color.
+	// Each slot draws its border via BorderFill: the outer round-rect is the
+	// Input-colored border (no stroke any more).
 	var borderCount int
-	for _, s := range canvas.StrokeRoundRects {
-		if s.StrokeWidth == metrics.InputOTP.BorderWidth && s.Color == tok.Input {
+	for _, rr := range canvas.RoundRects {
+		if rr.Color == tok.Input {
 			borderCount++
 		}
 	}
 	if borderCount < 4 {
-		t.Fatalf("expected at least 4 Input-colored borders, got %d", borderCount)
+		t.Fatalf("expected at least 4 Input-colored border fills, got %d", borderCount)
+	}
+	// No 1px border strokes remain.
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.InputOTP.BorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
+		}
 	}
 }
 

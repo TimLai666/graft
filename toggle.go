@@ -216,7 +216,24 @@ func (t *ToggleWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 	if outline {
 		drawButtonShadow(canvas, bounds, radius, t.disabled)
 	}
-	if hasFill && fill.A > 0 {
+
+	// Background + outline border, drawn UNDER the content. For the outline
+	// variant the border uses BorderFill (fill + ring) instead of an inside
+	// stroke, which renders as a solid gray box on the GPU; its opaque inset
+	// fill would clobber the icon/label, so it must precede the content.
+	if outline {
+		border := tok.Input
+		if t.focusVisible && !t.disabled {
+			border = tok.Ring
+		}
+		// Effective backdrop behind the border: the active fill (on/hover) if
+		// one was drawn, otherwise the page background.
+		bg := tok.Background
+		if hasFill && fill.A > 0 {
+			bg = fill
+		}
+		draw.BorderFill(canvas, bounds, draw.Fade(bg, t.disabled), draw.Fade(border, t.disabled), radius, m.BorderWidth)
+	} else if hasFill && fill.A > 0 {
 		canvas.DrawRoundRect(bounds, draw.Fade(fill, t.disabled), radius)
 	}
 
@@ -250,16 +267,6 @@ func (t *ToggleWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 		} else {
 			canvas.DrawText(t.label, labelRect, m.FontSize, fg, m.FontWeight >= 600, widget.TextAlignLeft)
 		}
-	}
-
-	// Outline border (border-input). When focus-visible the border turns
-	// solid --ring (focus-visible:border-ring).
-	if outline {
-		border := tok.Input
-		if t.focusVisible && !t.disabled {
-			border = tok.Ring
-		}
-		draw.InsideBorder(canvas, bounds, radius, draw.Fade(border, t.disabled), m.BorderWidth)
 	}
 
 	// Focus ring (focus-visible:ring-[3px] ring-ring/50).

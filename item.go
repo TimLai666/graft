@@ -144,14 +144,18 @@ func (i *ItemWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		canvas.DrawRoundRect(bounds, draw.MulAlpha(tok.Muted, metrics.ItemMutedBgAlpha), radius) // bg-muted/50
 	}
 
+	// Outline border drawn UNDER the content: BorderFill (fill = page
+	// background) instead of an inside stroke, which renders as a solid gray
+	// box on the GPU. Its opaque inset fill would clobber the slot row, so it
+	// must precede DrawChild.
+	if border := i.borderColor(tok); border.A > 0 {
+		draw.BorderFill(canvas, bounds, tok.Background, border, radius, metrics.ItemBorderWidth)
+	}
+
 	canvas.PushTransform(bounds.Min)
 	widget.StampScreenOrigin(i.box, canvas)
 	widget.DrawChild(i.box, ctx, canvas)
 	canvas.PopTransform()
-
-	if border := i.borderColor(tok); border.A > 0 {
-		draw.InsideBorder(canvas, bounds, radius, border, metrics.ItemBorderWidth)
-	}
 }
 
 // borderColor resolves the 1px border color: Border token for the outline
@@ -366,8 +370,7 @@ func (m *ItemMediaWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	switch m.variant {
 	case itemMediaIcon:
 		radius := th.RadiusSM() // rounded-sm
-		canvas.DrawRoundRect(bounds, tok.Muted, radius)
-		draw.InsideBorder(canvas, bounds, radius, tok.Border, metrics.ItemBorderWidth)
+		draw.BorderFill(canvas, bounds, tok.Muted, tok.Border, radius, metrics.ItemBorderWidth)
 	case itemMediaImage:
 		radius := th.RadiusSM() // rounded-sm
 		canvas.DrawRoundRect(bounds, tok.Muted, radius)

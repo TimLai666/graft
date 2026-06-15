@@ -90,15 +90,13 @@ func (c *CardWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	bounds := c.Bounds()
 	radius := th.RadiusXL() // rounded-xl
 
-	draw.Shadow(canvas, bounds, radius, metrics.ShadowSM) // shadow-sm
-	canvas.DrawRoundRect(bounds, tok.Card, radius)        // bg-card
+	draw.Shadow(canvas, bounds, radius, metrics.ShadowSM)                                   // shadow-sm
+	draw.BorderFill(canvas, bounds, tok.Card, tok.Border, radius, metrics.CardBorderWidth) // bg-card + border
 
 	canvas.PushTransform(bounds.Min)
 	widget.StampScreenOrigin(c.box, canvas)
 	widget.DrawChild(c.box, ctx, canvas)
 	canvas.PopTransform()
-
-	draw.InsideBorder(canvas, bounds, radius, tok.Border, metrics.CardBorderWidth) // border
 }
 
 // Event forwards input to the card sections with card-local coordinates.

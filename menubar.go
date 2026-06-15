@@ -96,8 +96,7 @@ func (m *MenubarWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	radius := th.RadiusMD()
 
 	draw.Shadow(canvas, b, radius, metrics.ShadowXS)
-	canvas.DrawRoundRect(b, tok.Background, radius)
-	draw.InsideBorder(canvas, b, radius, tok.Border, metrics.MenubarBorderWidth)
+	draw.BorderFill(canvas, b, tok.Background, tok.Border, radius, metrics.MenubarBorderWidth)
 
 	for i, mm := range m.menus {
 		mm.open = i == m.openIndex

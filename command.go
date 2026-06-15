@@ -317,8 +317,7 @@ func (c *CommandWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 
 	// Surface: shadow + popover bg + border.
 	draw.Shadow(canvas, bounds, rLG, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, rLG)
-	draw.InsideBorder(canvas, bounds, rLG, tok.Border, m.SeparatorWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, rLG, m.SeparatorWidth)
 
 	// -- Search row --
 	searchIconRect := geometry.NewRect(

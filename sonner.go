@@ -232,8 +232,7 @@ func (c *ToastCardWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	bounds := c.Bounds()
 
 	draw.Shadow(canvas, bounds, r, metrics.ShadowLG)
-	canvas.DrawRoundRect(bounds, tok.Popover, r)
-	draw.InsideBorder(canvas, bounds, r, tok.Border, m.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, r, m.BorderWidth)
 
 	// Status icon (top-aligned with the title line).
 	if ic, ok := c.cfg.variant.statusIcon(); ok {

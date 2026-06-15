@@ -54,11 +54,12 @@ func TestPaginationActivePageOutline(t *testing.T) {
 	p.Layout(uitest.NewMockContext(), geometry.Loose(geometry.Sz(600, 100)))
 	canvas := uitest.DrawWidget(p)
 
-	// Exactly one 1px border in light mode comes from the active outline page
-	// button (ghost pages and ghost prev/next have no border).
+	// The outline border is now a BorderFill round-rect in the Border token
+	// (no stroke). Exactly one comes from the active outline page button
+	// (ghost pages and ghost prev/next have no border).
 	borderCount := 0
-	for _, s := range canvas.StrokeRoundRects {
-		if s.StrokeWidth == metrics.Button.BorderWidth && (s.Color == tok.Border) {
+	for _, rr := range canvas.RoundRects {
+		if rr.Color == tok.Border {
 			borderCount++
 		}
 	}

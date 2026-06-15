@@ -33,33 +33,38 @@ func TestCardSpec(t *testing.T) {
 	}
 
 	cv := uitest.DrawWidget(card)
-	// shadow-sm = 3 layers + 1 card fill.
-	if len(cv.RoundRects) != len(metrics.ShadowSM)+1 {
-		t.Fatalf("round rects: got %d, want %d", len(cv.RoundRects), len(metrics.ShadowSM)+1)
+	// shadow-sm = 3 layers + BorderFill (outer border round-rect + inner
+	// card fill round-rect).
+	if len(cv.RoundRects) != len(metrics.ShadowSM)+2 {
+		t.Fatalf("round rects: got %d, want %d", len(cv.RoundRects), len(metrics.ShadowSM)+2)
 	}
-	fill := cv.RoundRects[len(metrics.ShadowSM)]
+
+	// Outer round-rect = border color at full bounds / full radius.
+	border := cv.RoundRects[len(metrics.ShadowSM)]
+	if border.Color != tok.Border {
+		t.Errorf("border fill: got %v, want border token %v", border.Color, tok.Border)
+	}
+	if border.Radius != th.RadiusXL() {
+		t.Errorf("border radius: got %v, want rounded-xl %v", border.Radius, th.RadiusXL())
+	}
+	if border.Bounds != geometry.NewRect(0, 0, 360, wantH) {
+		t.Errorf("border fill bounds: got %v", border.Bounds)
+	}
+
+	// Inner round-rect = card fill, inset by 1px, radius clamped by 1.
+	fill := cv.RoundRects[len(metrics.ShadowSM)+1]
 	if fill.Color != tok.Card {
 		t.Errorf("card fill: got %v, want card token %v", fill.Color, tok.Card)
 	}
-	if fill.Radius != th.RadiusXL() {
-		t.Errorf("card radius: got %v, want rounded-xl %v", fill.Radius, th.RadiusXL())
+	if fill.Radius != th.RadiusXL()-1 {
+		t.Errorf("card radius: got %v, want rounded-xl-1 %v", fill.Radius, th.RadiusXL()-1)
 	}
-	if fill.Bounds != geometry.NewRect(0, 0, 360, wantH) {
+	if fill.Bounds != geometry.NewRect(0, 0, 360, wantH).Expand(-1) {
 		t.Errorf("card fill bounds: got %v", fill.Bounds)
 	}
 
-	if len(cv.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes: got %d, want 1 (border)", len(cv.StrokeRoundRects))
-	}
-	border := cv.StrokeRoundRects[0]
-	if border.Color != tok.Border || border.StrokeWidth != 1 {
-		t.Errorf("border: got %+v, want 1px border token", border)
-	}
-	if border.Bounds != geometry.NewRect(0, 0, 360, wantH).Expand(-0.5) {
-		t.Errorf("border bounds: got %v (inside border expected)", border.Bounds)
-	}
-	if border.Radius != th.RadiusXL()-0.5 {
-		t.Errorf("border radius: got %v, want %v", border.Radius, th.RadiusXL()-0.5)
+	if len(cv.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes: got %d, want 0 (border now a fill)", len(cv.StrokeRoundRects))
 	}
 }
 

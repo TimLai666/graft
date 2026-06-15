@@ -82,23 +82,41 @@ func TestBadgeOutlineSpec(t *testing.T) {
 	size := uitest.LayoutWidget(b, 500, 500)
 	cv := uitest.DrawWidget(b)
 
-	if len(cv.RoundRects) != 0 {
-		t.Errorf("outline badge has no fill, got %d round rects", len(cv.RoundRects))
+	// Outline border is now BorderFill (two convex fills): an outer round-rect
+	// in --border at full bounds, then an inner fill round-rect (the page
+	// --background, since the outline variant has no fill) inset by the 1px
+	// border. No StrokeRoundRect for the border anymore.
+	if len(cv.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes: got %d, want 0 (border is now BorderFill)", len(cv.StrokeRoundRects))
 	}
-	if len(cv.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes: got %d, want 1 (inside border)", len(cv.StrokeRoundRects))
+	if len(cv.RoundRects) != 2 {
+		t.Fatalf("round rects: got %d, want 2 (border + inset fill)", len(cv.RoundRects))
 	}
-	st := cv.StrokeRoundRects[0]
-	if st.Color != tok.Border {
-		t.Errorf("border color: got %v, want border %v", st.Color, tok.Border)
+	radius := th.Radius4XL()
+	full := geometry.FromPointSize(geometry.Pt(0, 0), size)
+
+	border := cv.RoundRects[0]
+	if border.Color != tok.Border {
+		t.Errorf("border color: got %v, want border %v", border.Color, tok.Border)
 	}
-	if st.StrokeWidth != 1 {
-		t.Errorf("border width: got %v, want 1", st.StrokeWidth)
+	if border.Bounds != full {
+		t.Errorf("border bounds: got %v, want full %v", border.Bounds, full)
 	}
-	wantBounds := geometry.FromPointSize(geometry.Pt(0, 0), size).Expand(-0.5)
-	if st.Bounds != wantBounds {
-		t.Errorf("border bounds: got %v, want inset %v", st.Bounds, wantBounds)
+	if border.Radius != radius {
+		t.Errorf("border radius: got %v, want rounded-4xl %v", border.Radius, radius)
 	}
+
+	inner := cv.RoundRects[1]
+	if inner.Color != tok.Background {
+		t.Errorf("inner fill color: got %v, want background %v", inner.Color, tok.Background)
+	}
+	if want := full.Expand(-1); inner.Bounds != want {
+		t.Errorf("inner fill bounds: got %v, want inset %v", inner.Bounds, want)
+	}
+	if want := radius - 1; inner.Radius != want {
+		t.Errorf("inner fill radius: got %v, want %v", inner.Radius, want)
+	}
+
 	if cv.StyledTexts[0].Style.Color != tok.Foreground {
 		t.Errorf("outline text color: got %v, want foreground", cv.StyledTexts[0].Style.Color)
 	}
@@ -154,11 +172,16 @@ func TestBadgeFocusRing(t *testing.T) {
 	b.Event(ctx, uitest.FocusGained())
 
 	cv := uitest.DrawWidget(b)
-	// Focus-visible: 3px ring band + border turning solid ring color.
-	var ring, border int
+	// Focus-visible: the 3px ring band is still a StrokeRoundRect, but the
+	// border (turning solid ring color) is now drawn via BorderFill — an outer
+	// DrawRoundRect in the ring color, not a width-1 stroke. So exactly one
+	// stroke remains (the ring band).
+	var ring int
 	for _, st := range cv.StrokeRoundRects {
-		switch st.StrokeWidth {
-		case 3:
+		if st.StrokeWidth == 1 {
+			t.Errorf("unexpected width-1 stroke %v (border is now BorderFill)", st)
+		}
+		if st.StrokeWidth == 3 {
 			ring++
 			wantRing := tok.Ring
 			wantRing.A = 0.5
@@ -172,15 +195,18 @@ func TestBadgeFocusRing(t *testing.T) {
 			if st.Radius != th.Radius4XL()+1.5 {
 				t.Errorf("ring radius: got %v, want rounded-4xl+1.5", st.Radius)
 			}
-		case 1:
-			border++
-			if st.Color != tok.Ring {
-				t.Errorf("focused border color: got %v, want solid ring %v", st.Color, tok.Ring)
-			}
 		}
 	}
-	if ring != 1 || border != 1 {
-		t.Fatalf("focus strokes: ring=%d border=%d, want 1 and 1", ring, border)
+	if ring != 1 {
+		t.Fatalf("focus strokes: ring=%d, want 1 (ring band only)", ring)
+	}
+
+	// Focused border is the outer BorderFill round-rect in the solid ring color.
+	if len(cv.RoundRects) == 0 {
+		t.Fatal("focused badge: no round rects (border should be BorderFill)")
+	}
+	if got := cv.RoundRects[0].Color; got != tok.Ring {
+		t.Errorf("focused border color: got %v, want solid ring %v", got, tok.Ring)
 	}
 
 	// Click focus must not show the ring.

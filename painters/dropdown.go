@@ -67,28 +67,31 @@ func (p Dropdown) paintTrigger(canvas widget.Canvas, st *dropdown.TriggerPaintSt
 		draw.Shadow(canvas, bounds, radius, metrics.ShadowXS)
 	}
 
-	// Fill: light transparent; dark input/30, hover input/50.
+	// Effective trigger backdrop behind the border ring: light is
+	// transparent (page background); dark gets input/30, hover input/50.
+	triggerBg := tok.Background
 	if dark {
 		fill := draw.MulAlpha(tok.Input, 0.3)
 		if st.Hovered && !disabled {
 			fill = draw.MulAlpha(tok.Input, 0.5)
 		}
-		canvas.DrawRoundRect(bounds, draw.Fade(fill, disabled), radius)
+		triggerBg = draw.Fade(fill, disabled)
 	}
 
-	// Border + focus ring.
+	// Border + focus ring. BorderFill (fill + ring) instead of an inside
+	// stroke, which renders as a solid gray box on the GPU.
 	switch {
 	case ex.invalid:
 		ring := draw.Alpha(tok.Destructive, dropdownInvalidRingAlpha(dark))
 		if ex.focusVisible {
 			draw.FocusRing(canvas, bounds, radius, ring)
 		}
-		draw.InsideBorder(canvas, bounds, radius, draw.Fade(tok.Destructive, disabled), m.BorderWidth)
+		draw.BorderFill(canvas, bounds, triggerBg, draw.Fade(tok.Destructive, disabled), radius, m.BorderWidth)
 	case ex.focusVisible:
 		draw.FocusRing(canvas, bounds, radius, draw.Alpha(tok.Ring, metrics.RingAlpha))
-		draw.InsideBorder(canvas, bounds, radius, tok.Ring, m.BorderWidth)
+		draw.BorderFill(canvas, bounds, triggerBg, tok.Ring, radius, m.BorderWidth)
 	default:
-		draw.InsideBorder(canvas, bounds, radius, draw.Fade(tok.Input, disabled), m.BorderWidth)
+		draw.BorderFill(canvas, bounds, triggerBg, draw.Fade(tok.Input, disabled), radius, m.BorderWidth)
 	}
 
 	// Text (placeholder = muted-foreground, else foreground).
@@ -129,8 +132,7 @@ func (p Dropdown) PaintMenu(canvas widget.Canvas, st *dropdown.MenuPaintState) {
 
 	// Content surface: shadow-md, bg-popover, 1px border.
 	draw.Shadow(canvas, bounds, radius, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, radius)
-	draw.InsideBorder(canvas, bounds, radius, tok.Border, m.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, radius, m.BorderWidth)
 
 	canvas.PushClip(bounds)
 	defer canvas.PopClip()

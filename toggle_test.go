@@ -91,14 +91,15 @@ func TestToggleSpecOutlineBorder(t *testing.T) {
 	uitest.LayoutWidget(o, 400, 200)
 	mc := uitest.DrawWidget(o)
 
+	// Outline border is now the outer BorderFill round-rect in --input.
 	found := false
-	for _, sr := range mc.StrokeRoundRects {
-		if sr.Color == tok.Input && approx(sr.StrokeWidth, metrics.Toggle.BorderWidth) {
+	for _, rr := range mc.RoundRects {
+		if rr.Color == tok.Input {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("outline toggle must draw a 1px input border; strokes: %+v", mc.StrokeRoundRects)
+		t.Fatalf("outline toggle must draw an --input border fill; round-rects: %+v", mc.RoundRects)
 	}
 }
 

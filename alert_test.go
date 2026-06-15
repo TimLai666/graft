@@ -40,26 +40,36 @@ func TestAlertSpecChrome(t *testing.T) {
 	a.Layout(nil, fixedWidthLoose(360))
 	canvas := uitest.DrawWidget(a)
 
-	if len(canvas.RoundRects) == 0 {
-		t.Fatal("alert drew no background round-rect")
+	// Chrome is now BorderFill (two convex fills): an outer round-rect in
+	// --border at full bounds, then an inner Card-colored round-rect inset by
+	// the 1px border. No StrokeRoundRect for the border anymore.
+	if len(canvas.StrokeRoundRects) != 0 {
+		t.Fatalf("alert drew %d strokes, want 0 (border is now BorderFill)", len(canvas.StrokeRoundRects))
 	}
-	bg := canvas.RoundRects[0]
-	if bg.Color != tok.Card {
-		t.Errorf("alert bg color = %v, want Card %v", bg.Color, tok.Card)
-	}
-	if bg.Radius != th.RadiusLG() {
-		t.Errorf("alert bg radius = %v, want RadiusLG %v", bg.Radius, th.RadiusLG())
+	if len(canvas.RoundRects) < 2 {
+		t.Fatalf("alert drew %d round-rects, want >= 2 (border + card)", len(canvas.RoundRects))
 	}
 
-	if len(canvas.StrokeRoundRects) == 0 {
-		t.Fatal("alert drew no border stroke")
-	}
-	border := canvas.StrokeRoundRects[0]
+	border := canvas.RoundRects[0]
 	if border.Color != tok.Border {
 		t.Errorf("alert border color = %v, want Border %v", border.Color, tok.Border)
 	}
-	if border.StrokeWidth != 1 {
-		t.Errorf("alert border width = %v, want 1", border.StrokeWidth)
+	if border.Bounds != a.Bounds() {
+		t.Errorf("alert border bounds = %v, want full bounds %v", border.Bounds, a.Bounds())
+	}
+	if border.Radius != th.RadiusLG() {
+		t.Errorf("alert border radius = %v, want RadiusLG %v", border.Radius, th.RadiusLG())
+	}
+
+	bg := canvas.RoundRects[1]
+	if bg.Color != tok.Card {
+		t.Errorf("alert bg color = %v, want Card %v", bg.Color, tok.Card)
+	}
+	if want := a.Bounds().Expand(-1); bg.Bounds != want {
+		t.Errorf("alert bg bounds = %v, want inset %v", bg.Bounds, want)
+	}
+	if want := th.RadiusLG() - 1; bg.Radius != want {
+		t.Errorf("alert bg radius = %v, want RadiusLG-1 %v", bg.Radius, want)
 	}
 }
 

@@ -435,8 +435,6 @@ func (c *CarouselWidget) drawNavButton(canvas widget.Canvas, tok *theme.Tokens, 
 			bg = tok.Accent
 		}
 	}
-	canvas.DrawRoundRect(rect, draw.Fade(bg, disabled), radius)
-
 	// Border.
 	var borderColor widget.Color
 	if dark {
@@ -444,7 +442,7 @@ func (c *CarouselWidget) drawNavButton(canvas widget.Canvas, tok *theme.Tokens, 
 	} else {
 		borderColor = tok.Border
 	}
-	draw.InsideBorder(canvas, rect, radius, draw.Fade(borderColor, disabled), m.ButtonBorderWidth)
+	draw.BorderFill(canvas, rect, draw.Fade(bg, disabled), draw.Fade(borderColor, disabled), radius, m.ButtonBorderWidth)
 
 	// Icon.
 	var ic icon.IconData

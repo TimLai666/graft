@@ -169,13 +169,15 @@ func (c *CheckboxWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 		draw.Shadow(canvas, box, radius, metrics.ShadowXS)
 	}
 
-	// Fill.
+	// Box background (folded into BorderFill below): Primary when marked,
+	// a faint input wash in dark mode, otherwise the page background so the
+	// border reads as a ring (light unchecked is transparent in shadcn).
+	boxBg := tok.Background
 	switch {
 	case marked:
-		canvas.DrawRoundRect(box, draw.Fade(tok.Primary, disabled), radius)
+		boxBg = tok.Primary
 	case dark:
-		fill := draw.MulAlpha(tok.Input, metrics.Checkbox.DarkFillAlpha)
-		canvas.DrawRoundRect(box, draw.Fade(fill, disabled), radius)
+		boxBg = draw.MulAlpha(tok.Input, metrics.Checkbox.DarkFillAlpha)
 	}
 
 	// Focus ring (keyboard focus) before the border, per the shared recipe.
@@ -187,7 +189,9 @@ func (c *CheckboxWidget) Draw(_ widget.Context, canvas widget.Canvas) {
 		draw.FocusRing(canvas, box, radius, draw.Alpha(tok.Ring, metrics.RingAlpha))
 		borderColor = tok.Ring
 	}
-	draw.InsideBorder(canvas, box, radius, draw.Fade(borderColor, disabled), metrics.Checkbox.BorderWidth)
+	// BorderFill (fill + ring) instead of an inside stroke, which renders as
+	// a solid gray box on the GPU.
+	draw.BorderFill(canvas, box, draw.Fade(boxBg, disabled), draw.Fade(borderColor, disabled), radius, metrics.Checkbox.BorderWidth)
 
 	// Indicator glyph (Check, or Minus when indeterminate). Icons no-op on
 	// canvases without SVGRenderer (the mock); goldens render them.

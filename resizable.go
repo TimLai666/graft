@@ -546,8 +546,7 @@ func (h *ResizableHandleWidget) drawGrip(canvas widget.Canvas, b geometry.Rect, 
 	cy := b.Min.Y + b.Height()/2
 	chip := geometry.NewRect(cx-gw/2, cy-gh/2, gw, gh)
 
-	canvas.DrawRoundRect(chip, tok.Border, th.RadiusXS())
-	draw.InsideBorder(canvas, chip, th.RadiusXS(), tok.Border, metrics.Resizable.GripBorderWidth)
+	draw.BorderFill(canvas, chip, tok.Border, tok.Border, th.RadiusXS(), metrics.Resizable.GripBorderWidth)
 
 	ic := metrics.Resizable.GripIconSize
 	iconRect := geometry.NewRect(cx-ic/2, cy-ic/2, ic, ic)

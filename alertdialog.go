@@ -144,8 +144,7 @@ func (b *AlertDialogButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas)
 		if b.hovered {
 			fill = tok.Accent // hover:bg-accent
 		}
-		canvas.DrawRoundRect(bounds, fill, radius)
-		draw.InsideBorder(canvas, bounds, radius, tok.Border, 1)
+		draw.BorderFill(canvas, bounds, fill, tok.Border, radius, 1)
 		if b.hovered {
 			b.label.Color(tok.AccentForeground)
 		} else {

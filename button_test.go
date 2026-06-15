@@ -167,9 +167,10 @@ func TestButtonOutlineDraw(t *testing.T) {
 	uitest.LayoutWidget(b, 800, 600)
 	c := uitest.DrawWidget(b)
 
-	// shadow-xs: two black low-alpha layers before the background fill.
-	if len(c.RoundRects) != len(metrics.ShadowXS)+1 {
-		t.Fatalf("round rects = %d, want %d (shadow layers + fill)", len(c.RoundRects), len(metrics.ShadowXS)+1)
+	// shadow-xs layers, then the border (BorderFill): an outer round-rect in
+	// --border at full bounds, then an inner fill round-rect inset by 1px.
+	if len(c.RoundRects) != len(metrics.ShadowXS)+2 {
+		t.Fatalf("round rects = %d, want %d (shadow layers + border + fill)", len(c.RoundRects), len(metrics.ShadowXS)+2)
 	}
 	for i, l := range metrics.ShadowXS {
 		got := c.RoundRects[i]
@@ -178,26 +179,36 @@ func TestButtonOutlineDraw(t *testing.T) {
 			t.Errorf("shadow layer %d color = %v, want %v", i, got.Color, want)
 		}
 	}
-	if fill := c.RoundRects[len(metrics.ShadowXS)]; fill.Color != tok.Background {
-		t.Errorf("outline fill = %v, want background", fill.Color)
+
+	// No StrokeRoundRect border anymore — the border is two convex fills.
+	if len(c.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes = %d, want 0 (border is now BorderFill)", len(c.StrokeRoundRects))
 	}
 
-	// 1px inside border in --border: stroke at Expand(-0.5), radius 9.5.
-	if len(c.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes = %d, want 1 (border)", len(c.StrokeRoundRects))
-	}
-	border := c.StrokeRoundRects[0]
-	if border.StrokeWidth != 1 {
-		t.Errorf("border width = %v, want 1", border.StrokeWidth)
-	}
+	radius := graft.CurrentTheme().RadiusLG()
+
+	// Outer round-rect = border color (--border) at full bounds, radius RadiusLG.
+	border := c.RoundRects[len(metrics.ShadowXS)]
 	if border.Color != tok.Border {
 		t.Errorf("border color = %v, want border token", border.Color)
 	}
-	if border.Bounds != b.Bounds().Expand(-0.5) {
-		t.Errorf("border bounds = %v, want inset 0.5", border.Bounds)
+	if border.Bounds != b.Bounds() {
+		t.Errorf("border bounds = %v, want full bounds", border.Bounds)
 	}
-	if want := graft.CurrentTheme().RadiusLG() - 0.5; border.Radius != want {
-		t.Errorf("border radius = %v, want %v", border.Radius, want)
+	if border.Radius != radius {
+		t.Errorf("border radius = %v, want %v", border.Radius, radius)
+	}
+
+	// Inner round-rect = fill (--background) inset by the 1px border, radius-1.
+	fill := c.RoundRects[len(metrics.ShadowXS)+1]
+	if fill.Color != tok.Background {
+		t.Errorf("outline fill = %v, want background", fill.Color)
+	}
+	if fill.Bounds != b.Bounds().Expand(-1) {
+		t.Errorf("fill bounds = %v, want inset 1", fill.Bounds)
+	}
+	if want := radius - 1; fill.Radius != want {
+		t.Errorf("fill radius = %v, want %v", fill.Radius, want)
 	}
 }
 
@@ -207,13 +218,17 @@ func TestButtonOutlineDark(t *testing.T) {
 	uitest.LayoutWidget(b, 800, 600)
 	c := uitest.DrawWidget(b)
 
-	fill := c.RoundRects[len(metrics.ShadowXS)]
+	// BorderFill: outer round-rect = border (--input), inner round-rect = fill.
+	border := c.RoundRects[len(metrics.ShadowXS)]
+	if border.Color != tok.Input {
+		t.Errorf("dark outline border = %v, want input token (alpha kept)", border.Color)
+	}
+	fill := c.RoundRects[len(metrics.ShadowXS)+1]
 	if want := mulAlpha(tok.Input, 0.3); fill.Color != want {
 		t.Errorf("dark outline fill = %v, want input/30 %v", fill.Color, want)
 	}
-	border := c.StrokeRoundRects[0]
-	if border.Color != tok.Input {
-		t.Errorf("dark outline border = %v, want input token (alpha kept)", border.Color)
+	if len(c.StrokeRoundRects) != 0 {
+		t.Errorf("strokes = %d, want 0 (border is now BorderFill)", len(c.StrokeRoundRects))
 	}
 }
 

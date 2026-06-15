@@ -44,33 +44,31 @@ func TestHoverCardContentGeometry(t *testing.T) {
 	content.SetBounds(geometry.FromPointSize(geometry.Pt(0, 0), size))
 	canvas := uitest.DrawWidget(content)
 
-	// Background fill: bg-popover at rounded-md, full bounds.
-	bg := -1
-	for i, c := range canvas.RoundRects {
-		if c.Color == tok.Popover {
-			bg = i
-			break
-		}
+	// BorderFill: outer border round-rect (full bounds) then inner bg-popover
+	// fill (inset by the 1px border). shadow-md paints before both.
+	bw := metrics.HoverCardBorderWidth
+
+	border := canvas.RoundRects[len(metrics.ShadowMD)]
+	if border.Color != tok.Border {
+		t.Errorf("border fill = %+v, want border token %v", border, tok.Border)
 	}
-	if bg < 0 {
-		t.Fatalf("no bg-popover fill recorded")
-	}
-	if got := canvas.RoundRects[bg]; got.Radius != th.RadiusMD() ||
-		got.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
-		t.Errorf("bg fill = %+v, want radius %v full bounds", got, th.RadiusMD())
-	}
-	// shadow-md layers paint before the fill.
-	if bg != len(metrics.ShadowMD) {
-		t.Errorf("fills before bg = %d, want %d shadow layers", bg, len(metrics.ShadowMD))
+	if border.Radius != th.RadiusMD() ||
+		border.Bounds != geometry.NewRect(0, 0, size.Width, size.Height) {
+		t.Errorf("border fill = %+v, want radius %v full bounds", border, th.RadiusMD())
 	}
 
-	// 1px inside border in the border token.
-	if len(canvas.StrokeRoundRects) != 1 {
-		t.Fatalf("strokes = %d, want 1 border", len(canvas.StrokeRoundRects))
+	bg := canvas.RoundRects[len(metrics.ShadowMD)+1]
+	if bg.Color != tok.Popover {
+		t.Errorf("bg fill = %+v, want bg-popover %v", bg, tok.Popover)
 	}
-	st := canvas.StrokeRoundRects[0]
-	if st.Color != tok.Border || st.StrokeWidth != metrics.HoverCardBorderWidth {
-		t.Errorf("border = %+v, want 1px border token", st)
+	if bg.Radius != th.RadiusMD()-bw ||
+		bg.Bounds != geometry.NewRect(bw, bw, size.Width-2*bw, size.Height-2*bw) {
+		t.Errorf("bg fill = %+v, want radius %v inset by %v", bg, th.RadiusMD()-bw, bw)
+	}
+
+	// No border stroke any more (border is now a fill).
+	if len(canvas.StrokeRoundRects) != 0 {
+		t.Fatalf("strokes = %d, want 0 (border now a fill)", len(canvas.StrokeRoundRects))
 	}
 }
 

@@ -289,7 +289,7 @@ func (g *InputGroupWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		borderColor = tok.Ring
 		draw.FocusRing(canvas, bounds, radius, draw.Alpha(tok.Ring, metrics.RingAlpha))
 	}
-	draw.InsideBorder(canvas, bounds, radius, draw.Fade(borderColor, disabled), metrics.InputGroup.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Background, draw.Fade(borderColor, disabled), radius, metrics.InputGroup.BorderWidth)
 
 	// Inner field.
 	widget.StampScreenOrigin(g.field, canvas)

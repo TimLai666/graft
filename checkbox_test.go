@@ -54,7 +54,8 @@ func TestCheckboxLayout(t *testing.T) {
 }
 
 // TestCheckboxSpecUncheckedLight asserts a 16×16 box, radius 4, 1px Input
-// border via InsideBorder, and no fill in light mode.
+// border via BorderFill (outer Input round-rect + inner Background round-rect),
+// and no border stroke in light mode.
 func TestCheckboxSpecUncheckedLight(t *testing.T) {
 	tok, restore := checkboxForceLight(t)
 	defer restore()
@@ -63,32 +64,42 @@ func TestCheckboxSpecUncheckedLight(t *testing.T) {
 	laidOutCheckbox(c)
 	canvas := uitest.DrawWidget(c)
 
-	for _, rr := range canvas.RoundRects {
-		if rr.Color.A == 1 {
-			t.Fatalf("unexpected opaque fill in light unchecked: %+v", rr)
-		}
-	}
-
-	var border *uitest.StrokeRoundRectCall
-	for idx := range canvas.StrokeRoundRects {
-		if canvas.StrokeRoundRects[idx].StrokeWidth == metrics.Checkbox.BorderWidth {
-			border = &canvas.StrokeRoundRects[idx]
+	// BorderFill: outer round-rect = Input border at full box bounds/radius.
+	var border *uitest.DrawRoundRectCall
+	for idx := range canvas.RoundRects {
+		if canvas.RoundRects[idx].Color == tok.Input {
+			border = &canvas.RoundRects[idx]
 		}
 	}
 	if border == nil {
-		t.Fatal("no box border stroke found")
+		t.Fatal("no Input-colored border round-rect found")
 	}
-	if border.Color != tok.Input {
-		t.Fatalf("border color: got %+v want Input %+v", border.Color, tok.Input)
+	if border.Radius != metrics.Checkbox.Radius {
+		t.Fatalf("border radius: got %v want %v", border.Radius, metrics.Checkbox.Radius)
 	}
-	wantR := metrics.Checkbox.Radius - metrics.Checkbox.BorderWidth/2
-	if border.Radius != wantR {
-		t.Fatalf("border radius: got %v want %v", border.Radius, wantR)
+	if border.Bounds.Width() != metrics.Checkbox.Size {
+		t.Fatalf("box width: got %v want %v", border.Bounds.Width(), metrics.Checkbox.Size)
 	}
-	// Box is 16×16 (stroke bounds are inset by w/2).
-	bw := border.Bounds.Width() + metrics.Checkbox.BorderWidth
-	if bw != metrics.Checkbox.Size {
-		t.Fatalf("box width: got %v want %v", bw, metrics.Checkbox.Size)
+
+	// Inner round-rect = page Background fill, inset by the border width.
+	var fill *uitest.DrawRoundRectCall
+	for idx := range canvas.RoundRects {
+		if canvas.RoundRects[idx].Color == tok.Background {
+			fill = &canvas.RoundRects[idx]
+		}
+	}
+	if fill == nil {
+		t.Fatal("no Background-colored inner fill round-rect found")
+	}
+	if fill.Bounds.Width() != metrics.Checkbox.Size-2*metrics.Checkbox.BorderWidth {
+		t.Fatalf("inner fill width: got %v want %v", fill.Bounds.Width(), metrics.Checkbox.Size-2*metrics.Checkbox.BorderWidth)
+	}
+
+	// No 1px border stroke any more (border is now a fill).
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.Checkbox.BorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
+		}
 	}
 }
 
@@ -102,27 +113,33 @@ func TestCheckboxSpecCheckedLight(t *testing.T) {
 	laidOutCheckbox(c)
 	canvas := uitest.DrawWidget(c)
 
-	var fill *uitest.DrawRoundRectCall
+	// BorderFill with Primary fill + Primary border: outer round-rect at full
+	// box radius, inner fill round-rect at radius-1. Both Primary.
+	var outer, inner *uitest.DrawRoundRectCall
 	for idx := range canvas.RoundRects {
-		if canvas.RoundRects[idx].Color == tok.Primary {
-			fill = &canvas.RoundRects[idx]
+		rr := &canvas.RoundRects[idx]
+		if rr.Color != tok.Primary {
+			continue
+		}
+		switch rr.Radius {
+		case metrics.Checkbox.Radius:
+			outer = rr
+		case metrics.Checkbox.Radius - metrics.Checkbox.BorderWidth:
+			inner = rr
 		}
 	}
-	if fill == nil {
-		t.Fatal("checked box should have a Primary fill")
+	if outer == nil {
+		t.Fatalf("checked box should have a Primary border round-rect at radius %v", metrics.Checkbox.Radius)
 	}
-	if fill.Radius != metrics.Checkbox.Radius {
-		t.Fatalf("fill radius: got %v want %v", fill.Radius, metrics.Checkbox.Radius)
+	if inner == nil {
+		t.Fatalf("checked box should have a Primary fill round-rect at radius %v", metrics.Checkbox.Radius-metrics.Checkbox.BorderWidth)
 	}
 
-	var border *uitest.StrokeRoundRectCall
-	for idx := range canvas.StrokeRoundRects {
-		if canvas.StrokeRoundRects[idx].StrokeWidth == metrics.Checkbox.BorderWidth {
-			border = &canvas.StrokeRoundRects[idx]
+	// No 1px border stroke any more.
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.Checkbox.BorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
 		}
-	}
-	if border == nil || border.Color != tok.Primary {
-		t.Fatalf("checked border should be Primary, got %+v", border)
 	}
 }
 

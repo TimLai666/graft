@@ -253,14 +253,24 @@ func (b *BadgeWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	bounds := b.Bounds()
 	radius := th.Radius4XL() // rounded-4xl ≈ 26px
 
-	if fill := b.fillColor(tok, dark); fill.A > 0 {
+	fill := b.fillColor(tok, dark)
+	border := b.borderColor(tok)
+	if border.A == 0 && fill.A > 0 {
+		// Solid/secondary variants: plain fill, no border.
 		canvas.DrawRoundRect(bounds, fill, radius)
 	}
 	if b.focusRing && b.IsFocused() {
 		draw.FocusRing(canvas, bounds, radius, b.ringColor(tok, dark))
 	}
-	if border := b.borderColor(tok); border.A > 0 {
-		draw.InsideBorder(canvas, bounds, radius, border, metrics.BadgeBorderWidth)
+	if border.A > 0 {
+		// BorderFill (fill + ring) instead of an inside stroke, which renders
+		// as a solid gray box on the GPU. Outline variant is transparent
+		// (use the page background) unless a hover fill is active.
+		bg := tok.Background
+		if fill.A > 0 {
+			bg = fill
+		}
+		draw.BorderFill(canvas, bounds, bg, border, radius, metrics.BadgeBorderWidth)
 	}
 
 	canvas.PushTransform(bounds.Min)

@@ -160,8 +160,7 @@ func (p *Panel) Draw(_ widget.Context, canvas widget.Canvas) {
 
 	// Surface: shadow-md, bg-popover, 1px border.
 	draw.Shadow(canvas, bounds, radius, metrics.ShadowMD)
-	canvas.DrawRoundRect(bounds, tok.Popover, radius)
-	draw.InsideBorder(canvas, bounds, radius, tok.Border, m.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Popover, tok.Border, radius, m.BorderWidth)
 
 	canvas.PushClip(bounds)
 	defer canvas.PopClip()

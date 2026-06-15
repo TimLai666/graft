@@ -444,8 +444,7 @@ func (c *DialogContentWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	radius := th.RadiusXL() // content: rounded-xl
 
 	draw.Shadow(canvas, b, radius, metrics.ShadowLG)
-	canvas.DrawRoundRect(b, tok.Background, radius)
-	draw.InsideBorder(canvas, b, radius, tok.Border, metrics.DialogBorderWidth)
+	draw.BorderFill(canvas, b, tok.Background, tok.Border, radius, metrics.DialogBorderWidth)
 
 	for _, ch := range c.children {
 		ch.Draw(ctx, canvas)

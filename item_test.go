@@ -47,31 +47,47 @@ func TestItemOutlineSpec(t *testing.T) {
 
 	cv := uitest.DrawWidget(item)
 
-	// The outline variant draws no Item fill: assert no round rect spans the
-	// full Item bounds (the icon chip and Switch draw smaller round rects).
+	bw := metrics.ItemBorderWidth
 	full := geometry.NewRect(0, 0, 400, wantH)
-	for _, rr := range cv.RoundRects {
-		if rr.Bounds == full {
-			t.Errorf("outline item drew a full-bounds fill %+v, want none", rr)
-		}
-	}
 
-	// Exactly one stroke spans the full Item bounds: the 1px outline border.
-	var border *uitest.StrokeRoundRectCall
-	inside := full.Expand(-0.5)
-	for n := range cv.StrokeRoundRects {
-		if cv.StrokeRoundRects[n].Bounds == inside {
-			border = &cv.StrokeRoundRects[n]
+	// The outline variant's border is now a BorderFill: the full-bounds
+	// round-rect is the Border-colored outer ring (no stroke).
+	var border *uitest.DrawRoundRectCall
+	for n := range cv.RoundRects {
+		if cv.RoundRects[n].Bounds == full {
+			border = &cv.RoundRects[n]
 		}
 	}
 	if border == nil {
-		t.Fatalf("no 1px outline border stroking the full item bounds %v found", inside)
+		t.Fatalf("no full-bounds outline border round-rect %v found", full)
 	}
-	if border.Color != tok.Border || border.StrokeWidth != metrics.ItemBorderWidth {
-		t.Errorf("border: got %+v, want 1px Border token", border)
+	if border.Color != tok.Border {
+		t.Errorf("border fill: got %+v, want Border token %v", border.Color, tok.Border)
 	}
-	if border.Radius != th.RadiusMD()-0.5 {
-		t.Errorf("border radius: got %v, want rounded-md inside %v", border.Radius, th.RadiusMD()-0.5)
+	if border.Radius != th.RadiusMD() {
+		t.Errorf("border radius: got %v, want rounded-md %v", border.Radius, th.RadiusMD())
+	}
+
+	// Inner fill = page Background, inset by the border width.
+	inside := full.Expand(-bw)
+	var inner *uitest.DrawRoundRectCall
+	for n := range cv.RoundRects {
+		if cv.RoundRects[n].Bounds == inside && cv.RoundRects[n].Color == tok.Background {
+			inner = &cv.RoundRects[n]
+		}
+	}
+	if inner == nil {
+		t.Fatalf("no inset Background fill round-rect %v found", inside)
+	}
+	if inner.Radius != th.RadiusMD()-bw {
+		t.Errorf("inner fill radius: got %v, want %v", inner.Radius, th.RadiusMD()-bw)
+	}
+
+	// No 1px border stroke any more (border is now a fill).
+	for _, s := range cv.StrokeRoundRects {
+		if s.StrokeWidth == metrics.ItemBorderWidth {
+			t.Fatalf("unexpected 1px border stroke: %+v", s)
+		}
 	}
 }
 
@@ -165,21 +181,29 @@ func TestItemMediaIconChip(t *testing.T) {
 	}
 
 	cv := uitest.DrawWidget(media)
-	if len(cv.RoundRects) != 1 {
-		t.Fatalf("icon chip round rects: got %d, want 1 (Muted fill)", len(cv.RoundRects))
+	bw := metrics.ItemBorderWidth
+
+	// BorderFill: outer Border round-rect at full chip bounds, inner Muted
+	// fill inset by the border width. No stroke.
+	if len(cv.RoundRects) != 2 {
+		t.Fatalf("icon chip round rects: got %d, want 2 (Border border + Muted fill)", len(cv.RoundRects))
 	}
-	chip := cv.RoundRects[0]
+	border := cv.RoundRects[0]
+	if border.Color != tok.Border {
+		t.Errorf("icon chip border fill: got %v, want Border %v", border.Color, tok.Border)
+	}
+	if border.Radius != th.RadiusSM() {
+		t.Errorf("icon chip border radius: got %v, want rounded-sm %v", border.Radius, th.RadiusSM())
+	}
+	chip := cv.RoundRects[1]
 	if chip.Color != tok.Muted {
 		t.Errorf("icon chip fill: got %v, want Muted %v", chip.Color, tok.Muted)
 	}
-	if chip.Radius != th.RadiusSM() {
-		t.Errorf("icon chip radius: got %v, want rounded-sm %v", chip.Radius, th.RadiusSM())
+	if chip.Radius != th.RadiusSM()-bw {
+		t.Errorf("icon chip fill radius: got %v, want %v", chip.Radius, th.RadiusSM()-bw)
 	}
-	if len(cv.StrokeRoundRects) != 1 {
-		t.Fatalf("icon chip strokes: got %d, want 1 (Border)", len(cv.StrokeRoundRects))
-	}
-	if cv.StrokeRoundRects[0].Color != tok.Border || cv.StrokeRoundRects[0].StrokeWidth != metrics.ItemBorderWidth {
-		t.Errorf("icon chip border: got %+v, want 1px Border token", cv.StrokeRoundRects[0])
+	if len(cv.StrokeRoundRects) != 0 {
+		t.Fatalf("icon chip strokes: got %d, want 0 (border now a fill)", len(cv.StrokeRoundRects))
 	}
 }
 

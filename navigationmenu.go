@@ -627,8 +627,7 @@ func (p *navMenuPanel) Draw(ctx widget.Context, canvas widget.Canvas) {
 	radius := th.RadiusLG() // content: rounded-lg
 
 	draw.Shadow(canvas, b, radius, metrics.ShadowMD)
-	canvas.DrawRoundRect(b, tok.Popover, radius)
-	draw.InsideBorder(canvas, b, radius, tok.Border, metrics.NavigationMenuBorderWidth)
+	draw.BorderFill(canvas, b, tok.Popover, tok.Border, radius, metrics.NavigationMenuBorderWidth)
 
 	canvas.PushClip(b)
 	defer canvas.PopClip()

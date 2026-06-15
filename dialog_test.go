@@ -65,37 +65,48 @@ func TestDialogContentLayout(t *testing.T) {
 	content.SetBounds(geometry.FromPointSize(geometry.Pt(0, 0), size))
 	canvas := uitest.DrawWidget(content)
 
-	// Card surface round-rect.
-	var card *uitest.DrawRoundRectCall
+	bw := metrics.DialogBorderWidth
+
+	// BorderFill: outer border round-rect at full size, inner Background fill
+	// inset by the border width.
+	var border *uitest.DrawRoundRectCall
 	for i := range canvas.RoundRects {
 		if canvas.RoundRects[i].Bounds.Size() == size {
+			border = &canvas.RoundRects[i]
+			break
+		}
+	}
+	if border == nil {
+		t.Fatalf("no full-size border round-rect at size %v", size)
+	}
+	if border.Color != tok.Border {
+		t.Errorf("card border fill: got %+v want Border %+v", border.Color, tok.Border)
+	}
+	if border.Radius != graft.CurrentTheme().RadiusXL() {
+		t.Errorf("card border radius: got %v want XL %v", border.Radius, graft.CurrentTheme().RadiusXL())
+	}
+
+	// Inner card fill = Background, inset by the border width.
+	var card *uitest.DrawRoundRectCall
+	for i := range canvas.RoundRects {
+		if canvas.RoundRects[i].Color == tok.Background &&
+			canvas.RoundRects[i].Bounds.Size() == geometry.Sz(size.Width-2*bw, size.Height-2*bw) {
 			card = &canvas.RoundRects[i]
 			break
 		}
 	}
 	if card == nil {
-		t.Fatalf("no card round-rect at size %v", size)
+		t.Fatalf("no inset Background card fill round-rect found")
 	}
-	if card.Color != tok.Background {
-		t.Errorf("card fill: got %+v want background %+v", card.Color, tok.Background)
-	}
-	if card.Radius != graft.CurrentTheme().RadiusXL() {
-		t.Errorf("card radius: got %v want XL %v", card.Radius, graft.CurrentTheme().RadiusXL())
+	if card.Radius != graft.CurrentTheme().RadiusXL()-bw {
+		t.Errorf("card fill radius: got %v want %v", card.Radius, graft.CurrentTheme().RadiusXL()-bw)
 	}
 
-	// Inside border stroke in Border color, width 1.
-	var border *uitest.StrokeRoundRectCall
-	for i := range canvas.StrokeRoundRects {
-		if canvas.StrokeRoundRects[i].StrokeWidth == metrics.DialogBorderWidth {
-			border = &canvas.StrokeRoundRects[i]
-			break
+	// No 1px card border stroke any more (border is now a fill).
+	for _, s := range canvas.StrokeRoundRects {
+		if s.StrokeWidth == metrics.DialogBorderWidth {
+			t.Fatalf("unexpected 1px card border stroke: %+v", s)
 		}
-	}
-	if border == nil {
-		t.Fatal("no 1px card border stroke")
-	}
-	if border.Color != tok.Border {
-		t.Errorf("card border color: got %+v want Border %+v", border.Color, tok.Border)
 	}
 }
 

@@ -214,8 +214,7 @@ func (a *AlertWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	radius := th.RadiusLG()
 
 	// Chrome: Card background + 1px inside border (no shadow on Alert).
-	canvas.DrawRoundRect(bounds, tok.Card, radius)
-	draw.InsideBorder(canvas, bounds, radius, tok.Border, metrics.Alert.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Card, tok.Border, radius, metrics.Alert.BorderWidth)
 
 	// Title / icon color: CardForeground (default) or Destructive.
 	fg := tok.CardForeground

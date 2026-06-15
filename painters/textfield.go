@@ -24,7 +24,7 @@ import (
 // InputWidget overrides Layout; this painter draws within whatever Bounds it
 // is given.
 //
-// Recipe per the spec: radius LG, 1px Input border via draw.InsideBorder,
+// Recipe per the spec: radius LG, 1px Input border via draw.BorderFill,
 // transparent bg (dark: Input/30 via draw.MulAlpha), shadow-xs, font 14px
 // Geist 400, placeholder MutedForeground, text Foreground, selection bg
 // Primary + fg PrimaryForeground, caret 1px Foreground. Focus: solid Ring
@@ -69,7 +69,7 @@ func (p TextField) PaintTextField(canvas widget.Canvas, st textfield.PaintState)
 		borderColor = tok.Ring
 		draw.FocusRing(canvas, bounds, radius, draw.Alpha(tok.Ring, metrics.RingAlpha))
 	}
-	draw.InsideBorder(canvas, bounds, radius, draw.Fade(borderColor, disabled), metrics.Input.BorderWidth)
+	draw.BorderFill(canvas, bounds, tok.Background, draw.Fade(borderColor, disabled), radius, metrics.Input.BorderWidth)
 
 	// Content area (inside px/py).
 	content := geometry.NewRect(
