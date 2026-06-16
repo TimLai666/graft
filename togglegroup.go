@@ -426,10 +426,11 @@ func (it *ToggleGroupItemWidget) Event(ctx widget.Context, e event.Event) bool {
 			it.st.toggle(it.value)
 			return true
 		}
-	case *event.FocusEvent:
-		it.SetFocused(ev.FocusType == event.FocusGained)
-		return false
 	}
+	// NOTE: *event.FocusEvent is window-level (OS focus gained/lost, no target
+	// widget) and is broadcast to every item; consuming it here marked all items
+	// focus-visible whenever the window was focused (focus rings rendered as
+	// solid boxes, gg#369). Per-widget focus is driven by ctx.RequestFocus.
 	return false
 }
 

@@ -54,6 +54,7 @@ type SelectWidget struct {
 
 	hovered      bool
 	focusVisible bool
+	pointerFocus bool // transient: focus arriving from a mouse press (no ring)
 	open         bool
 	menu         *selectMenu
 
@@ -313,18 +314,25 @@ func (s *SelectWidget) Event(ctx widget.Context, e event.Event) bool {
 		return s.handleMouse(ctx, ev)
 	case *event.KeyEvent:
 		return s.handleKey(ctx, ev)
-	case *event.FocusEvent:
-		if ev.FocusType == event.FocusGained {
-			s.focusVisible = true
-			s.SetNeedsRedraw(true)
-		} else if ev.FocusType == event.FocusLost {
-			s.focusVisible = false
-			s.SetNeedsRedraw(true)
-		}
-		return false
 	default:
 		return false
 	}
+	// NOTE: *event.FocusEvent is window-level (OS focus gained/lost, no target
+	// widget) and is broadcast to every widget; consuming it here marked the
+	// select focus-visible whenever the window was focused (focus ring rendered
+	// as a solid box, gg#369). Per-widget focus is driven by ctx.RequestFocus →
+	// SetFocused; pointerFocus suppresses the ring for mouse focus.
+}
+
+// SetFocused tracks focus-visible: keyboard focus (Tab traversal) shows the
+// ring; focus gained from a pointer press does not. Driven by the framework
+// focus manager / ctx.RequestFocus, never by the window-level FocusEvent.
+func (s *SelectWidget) SetFocused(focused bool) {
+	s.WidgetBase.SetFocused(focused)
+	s.focusVisible = focused && !s.pointerFocus
+	// MarkRedrawLocal, not SetNeedsRedraw: SetFocused runs inside
+	// ctx.RequestFocus which holds the context lock (see ButtonWidget).
+	s.MarkRedrawLocal()
 }
 
 func (s *SelectWidget) handleMouse(ctx widget.Context, e *event.MouseEvent) bool {
@@ -345,8 +353,11 @@ func (s *SelectWidget) handleMouse(ctx widget.Context, e *event.MouseEvent) bool
 		if e.Button != event.ButtonLeft {
 			return false
 		}
+		// pointerFocus suppresses the focus ring for this mouse-driven focus
+		// (SetFocused reads it); cleared immediately after.
+		s.pointerFocus = true
 		ctx.RequestFocus(s)
-		s.focusVisible = false // mouse focus does not show the ring
+		s.pointerFocus = false
 		s.toggle(ctx)
 		s.SetNeedsRedraw(true)
 		return true

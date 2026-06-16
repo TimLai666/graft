@@ -127,11 +127,11 @@ func TestSelectTriggerFocused(t *testing.T) {
 	tok := selectLightTheme(t)
 	s := graft.Select(graft.SelectItem("a", "Apple")).Placeholder("Pick")
 	selectLayout(t, s)
-	// Drive keyboard focus so focus-visible is set.
+	// Drive keyboard focus so focus-visible is set (live: focus.Manager.Focus
+	// → SetFocused; the window-level FocusEvent no longer drives per-widget focus).
 	s.SetFocused(true)
 	ctx := uitest.NewMockContext()
 	ctx.FocusedVal = s
-	s.Event(ctx, uitest.FocusGained())
 	c := uitest.DrawWidgetWithContext(s, ctx)
 
 	bounds := s.Bounds()

@@ -168,8 +168,7 @@ func TestBadgeFocusRing(t *testing.T) {
 
 	b := graft.Badge("Focus").OnClick(func() {})
 	size := uitest.LayoutWidget(b, 500, 500)
-	ctx := uitest.NewMockContext()
-	b.Event(ctx, uitest.FocusGained())
+	b.SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 
 	cv := uitest.DrawWidget(b)
 	// Focus-visible: the 3px ring band is still a StrokeRoundRect, but the
@@ -249,7 +248,7 @@ func TestGoldenBadge(t *testing.T) {
 	gtest.GoldenLightDark(t, "badge-states", func() widget.Widget {
 		focused := graft.Badge("Focused").OnClick(func() {})
 		uitest.LayoutWidget(focused, 500, 500)
-		focused.Event(uitest.NewMockContext(), uitest.FocusGained())
+		focused.SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 		return primitives.HBox(
 			hover(graft.Badge("Hover").OnClick(func() {})),
 			hover(graft.Badge("Hover").Secondary().OnClick(func() {})),

@@ -788,10 +788,12 @@ func (tr *TabsTriggerWidget) Event(ctx widget.Context, e event.Event) bool {
 			tr.activate(ctx)
 			return true
 		}
-	case *event.FocusEvent:
-		tr.SetFocused(ev.FocusType == event.FocusGained)
-		return false
 	}
+	// NOTE: *event.FocusEvent is window-level (OS focus gained/lost, no target
+	// widget) and is broadcast to every trigger; consuming it here marked every
+	// tab focus-visible whenever the window was focused, drawing a focus ring on
+	// each (rendered as a solid box by the GPU stroke path, gg#369 — the faint
+	// pill). Per-widget focus is driven by ctx.RequestFocus → SetFocused.
 	return false
 }
 

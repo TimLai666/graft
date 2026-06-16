@@ -104,7 +104,7 @@ func TestCarouselKeyboardNav(t *testing.T) {
 	ctx := uitest.NewMockContext()
 
 	// Focus the carousel.
-	c.Event(ctx, uitest.FocusGained())
+	c.SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 
 	// Right arrow: 0 -> 1.
 	c.Event(ctx, uitest.KeyPress(event.KeyRight, event.ModNone))
@@ -157,7 +157,7 @@ func TestCarouselVerticalKeyboardNav(t *testing.T) {
 	layoutCarousel(c)
 
 	ctx := uitest.NewMockContext()
-	c.Event(ctx, uitest.FocusGained())
+	c.SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 
 	c.Event(ctx, uitest.KeyPress(event.KeyDown, event.ModNone))
 	if sig.Get() != 1 {

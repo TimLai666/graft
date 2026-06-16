@@ -336,16 +336,12 @@ func (b *BadgeWidget) Event(ctx widget.Context, e event.Event) bool {
 			}
 			return true
 		}
-	case *event.FocusEvent:
-		switch ev.FocusType {
-		case event.FocusGained:
-			if b.clickable() {
-				b.SetFocused(true)
-			}
-		case event.FocusLost:
-			b.SetFocused(false)
-		}
 	}
+	// NOTE: *event.FocusEvent is window-level (OS focus gained/lost, no target
+	// widget) and is broadcast to every widget; consuming it here marked the
+	// badge focus-visible whenever the window was focused (focus ring rendered
+	// as a solid box, gg#369). Per-widget focus is driven by ctx.RequestFocus →
+	// SetFocused (mouseEvent sets noRing around RequestFocus for pointer focus).
 	return false
 }
 

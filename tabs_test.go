@@ -210,7 +210,7 @@ func TestTabsSpecFocusRing(t *testing.T) {
 	uitest.LayoutWidget(tabs, 800, 600)
 
 	// Keyboard focus (FocusGained without mouse press) draws the ring.
-	trs[1].Event(uitest.NewMockContext(), uitest.FocusGained())
+	trs[1].SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 	mc := uitest.DrawWidget(tabs)
 
 	want := tok.Ring
@@ -446,7 +446,7 @@ func TestGoldenTabs(t *testing.T) {
 	gtest.GoldenLightDark(t, "tabs-focus", func() widget.Widget {
 		tabs, trs := buildTabs(false)
 		uitest.LayoutWidget(tabs, 800, 600)
-		trs[1].Event(uitest.NewMockContext(), uitest.FocusGained())
+		trs[1].SetFocused(true) // keyboard focus (live: focus.Manager.Focus → SetFocused)
 		return primitives.Box(tabs).Padding(16)
 	})
 }

@@ -422,8 +422,14 @@ func (it *AccordionItemWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	}
 }
 
-// Event handles hover, click-to-toggle on the trigger row, keyboard
-// activation, and focus-visible tracking.
+// Event handles hover, click-to-toggle on the trigger row, and keyboard
+// activation. Per-item keyboard focus is driven by the framework's focus
+// manager via ctx.RequestFocus → SetFocused (as ButtonWidget does); the item
+// deliberately does NOT consume *event.FocusEvent. That event is window-level
+// (the OS window gained/lost focus, no target widget) and is broadcast to
+// every child, so handling it here marked ALL items focus-visible on each
+// window-focus gain — drawing a focus ring on every row that the GPU stroke
+// path then renders as a solid box (gg#369), i.e. the "gray bar" bug.
 func (it *AccordionItemWidget) Event(ctx widget.Context, e event.Event) bool {
 	switch ev := e.(type) {
 	case *event.MouseEvent:
@@ -434,9 +440,6 @@ func (it *AccordionItemWidget) Event(ctx widget.Context, e event.Event) bool {
 			it.st.toggle(it.value)
 			return true
 		}
-	case *event.FocusEvent:
-		it.SetFocused(ev.FocusType == event.FocusGained)
-		return false
 	}
 	return false
 }

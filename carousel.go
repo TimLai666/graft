@@ -519,10 +519,11 @@ func (c *CarouselWidget) Event(ctx widget.Context, e event.Event) bool {
 		return c.mouseEvent(ctx, ev)
 	case *event.KeyEvent:
 		return c.keyEvent(ctx, ev)
-	case *event.FocusEvent:
-		c.SetFocused(ev.FocusType == event.FocusGained)
-		return false
 	}
+	// NOTE: *event.FocusEvent is window-level (OS focus gained/lost, no target
+	// widget) and is broadcast to every widget; consuming it here would mark
+	// the carousel focus-visible whenever the window is focused. Per-widget
+	// focus is driven by ctx.RequestFocus → SetFocused instead (see accordion).
 	return false
 }
 
