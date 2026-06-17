@@ -2,6 +2,7 @@ package graft
 
 import (
 	"github.com/gogpu/ui/a11y"
+	corebutton "github.com/gogpu/ui/core/button"
 	"github.com/gogpu/ui/event"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/icon"
@@ -26,7 +27,7 @@ import (
 // via internal/textmetrics, so exact width = text + paddings (+ icon +
 // gap) requires owning Layout.
 type ButtonWidget struct {
-	widget.WidgetBase
+	*corebutton.Widget
 
 	label    string
 	children []Widget
@@ -53,6 +54,7 @@ type ButtonWidget struct {
 	// :focus-visible semantics shadcn relies on.
 	pointerFocus bool
 	focusVisible bool
+	content      buttonContent
 }
 
 // Button creates a shadcn button with the given label. Optional children
@@ -63,6 +65,13 @@ func Button(label string, children ...Widget) *ButtonWidget {
 		children: children,
 		theme:    CurrentTheme(),
 	}
+	b.Widget = corebutton.New(
+		corebutton.TextFn(b.resolvedLabel),
+		corebutton.DisabledFn(b.resolvedDisabled),
+		corebutton.OnClick(b.activate),
+		corebutton.PainterOpt(buttonCorePainter{b: b}),
+	)
+	b.Widget.PaddingXY(0, 0)
 	b.SetVisible(true)
 	b.SetEnabled(true)
 	type parentSetter interface{ SetParent(widget.Widget) }
@@ -72,6 +81,39 @@ func Button(label string, children ...Widget) *ButtonWidget {
 		}
 	}
 	return b
+}
+
+type buttonCorePainter struct{ b *ButtonWidget }
+
+func (p buttonCorePainter) PaintButton(canvas widget.Canvas, state corebutton.PaintState) {
+	p.b.paintCoreButton(canvas, state)
+}
+
+type focusRedirectContext struct {
+	widget.Context
+	from widget.Widget
+	to   widget.Widget
+}
+
+func (c focusRedirectContext) RequestFocus(w widget.Widget) {
+	if w == c.from {
+		w = c.to
+	}
+	c.Context.RequestFocus(w)
+}
+
+func (c focusRedirectContext) ReleaseFocus(w widget.Widget) {
+	if w == c.from {
+		w = c.to
+	}
+	c.Context.ReleaseFocus(w)
+}
+
+func (c focusRedirectContext) IsFocused(w widget.Widget) bool {
+	if w == c.from {
+		w = c.to
+	}
+	return c.Context.IsFocused(w)
 }
 
 // Variant selects the button variant.
@@ -350,13 +392,14 @@ func (b *ButtonWidget) Layout(ctx widget.Context, c geometry.Constraints) geomet
 
 	// Position children for drawing/hit-testing.
 	cl := b.contentLayout(ctx, size.Width)
+	b.content = cl
 	for i, ch := range b.children {
 		sz := ch.Layout(ctx, geometry.Loose(geometry.Sz(geometry.Infinity, size.Height)))
 		ch.(interface{ SetBounds(geometry.Rect) }).SetBounds(geometry.NewRect(
 			cl.childX[i], (size.Height-sz.Height)/2, sz.Width, sz.Height))
 	}
 
-	b.SetBounds(geometry.FromPointSize(b.Position(), size))
+	b.Widget.SetBounds(geometry.FromPointSize(b.Position(), size))
 	return size
 }
 
@@ -439,18 +482,32 @@ func (b *ButtonWidget) radius() float32 {
 	return b.theme.RadiusLG()
 }
 
-// Draw paints the button: shadow, fill, border, icon, label, underline,
-// and focus ring, resolving all colors from the active token set.
+// Draw delegates the button's mechanism state to core/button and only paints
+// graft-owned child widgets after the core painter has rendered the button.
 func (b *ButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if !b.IsVisible() {
 		return
 	}
+	b.Widget.Draw(ctx, canvas)
+	if len(b.children) == 0 {
+		return
+	}
+	bounds := b.Bounds()
+	canvas.PushTransform(bounds.Min)
+	for _, ch := range b.children {
+		widget.StampScreenOrigin(ch, canvas)
+		widget.DrawChild(ch, ctx, canvas)
+	}
+	canvas.PopTransform()
+}
+
+func (b *ButtonWidget) paintCoreButton(canvas widget.Canvas, state corebutton.PaintState) {
 	th := b.theme
 	tok := th.Active()
 	dark := th.IsDark()
-	bounds := b.Bounds()
-	disabled := b.resolvedDisabled()
-	hovered := (b.hovered || b.pressed) && !disabled // pressed == hovered (DESIGN 5.3)
+	bounds := state.Bounds
+	disabled := state.Disabled
+	hovered := (state.Hovered || state.Pressed) && !disabled // pressed == hovered (DESIGN 5.3)
 	radius := b.radius()
 	m := b.sizeMetrics()
 
@@ -480,7 +537,7 @@ func (b *ButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		canvas.DrawRoundRect(bounds, draw.Fade(v.bg, disabled), radius)
 	}
 
-	cl := b.contentLayout(ctx, bounds.Width())
+	cl := b.content
 	fg := draw.Fade(v.fg, disabled)
 
 	if b.icon != nil {
@@ -517,15 +574,6 @@ func (b *ButtonWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 		}
 	}
 
-	if len(b.children) > 0 {
-		canvas.PushTransform(bounds.Min)
-		for _, ch := range b.children {
-			widget.StampScreenOrigin(ch, canvas)
-			widget.DrawChild(ch, ctx, canvas)
-		}
-		canvas.PopTransform()
-	}
-
 	// Border is painted up-front via BorderFill (see the fill switch above);
 	// no separate stroke pass here.
 
@@ -559,68 +607,24 @@ func drawButtonShadow(canvas widget.Canvas, bounds geometry.Rect, radius float32
 // Event handles hover, press/release click semantics, and keyboard
 // activation (Enter/Space when focused).
 func (b *ButtonWidget) Event(ctx widget.Context, e event.Event) bool {
-	if b.resolvedDisabled() {
-		return false // disabled:pointer-events-none
-	}
-	switch ev := e.(type) {
-	case *event.MouseEvent:
-		return b.mouseEvent(ctx, ev)
-	case *event.KeyEvent:
-		if !b.IsFocused() || ev.KeyType != event.KeyPress {
-			return false
-		}
+	if ev, ok := e.(*event.KeyEvent); ok && b.IsFocused() && ev.KeyType == event.KeyPress {
 		if ev.Key == event.KeyEnter || ev.Key == event.KeySpace {
 			b.activate()
 			return true
 		}
 	}
-	return false
-}
-
-func (b *ButtonWidget) mouseEvent(ctx widget.Context, e *event.MouseEvent) bool {
-	switch e.MouseType {
-	case event.MouseEnter:
-		b.hovered = true
-		ctx.SetCursor(widget.CursorPointer) // shadcn base layer: button:not(:disabled){cursor:pointer}
-		b.invalidate(ctx)
-		return true
-	case event.MouseLeave:
-		b.hovered = false
-		b.pressed = false
-		ctx.SetCursor(widget.CursorDefault)
-		b.invalidate(ctx)
-		return true
-	case event.MousePress:
-		if e.Button != event.ButtonLeft {
-			return false
-		}
-		b.pressed = true
+	if ev, ok := e.(*event.MouseEvent); ok && ev.MouseType == event.MousePress && ev.Button == event.ButtonLeft {
 		b.pointerFocus = true
-		ctx.RequestFocus(b)
-		b.pointerFocus = false
-		b.invalidate(ctx)
-		return true
-	case event.MouseRelease:
-		wasPressed := b.pressed
-		b.pressed = false
-		b.invalidate(ctx)
-		if wasPressed && b.Bounds().Contains(e.Position) {
-			b.activate()
-		}
-		return true
+		b.focusVisible = false
+		defer func() { b.pointerFocus = false }()
 	}
-	return false
+	return b.Widget.Event(focusRedirectContext{Context: ctx, from: b.Widget, to: b}, e)
 }
 
 func (b *ButtonWidget) activate() {
 	if b.onClick != nil {
 		b.onClick()
 	}
-}
-
-func (b *ButtonWidget) invalidate(ctx widget.Context) {
-	b.SetNeedsRedraw(true)
-	ctx.InvalidateRect(b.Bounds())
 }
 
 // IsFocusable reports whether the button can take keyboard focus.
@@ -632,7 +636,7 @@ func (b *ButtonWidget) IsFocusable() bool {
 // (i.e. keyboard traversal) shows the ring; pointer focus does not.
 func (b *ButtonWidget) SetFocused(focused bool) {
 	b.focusVisible = focused && !b.pointerFocus
-	b.WidgetBase.SetFocused(focused)
+	b.Widget.SetFocused(focused)
 	// MarkRedrawLocal, NOT SetNeedsRedraw: SetFocused runs inside
 	// ctx.RequestFocus, which holds the context write lock. SetNeedsRedraw
 	// propagates into ctx.RegisterDirtyBoundary (an RLock on that same
