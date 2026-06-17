@@ -1,6 +1,7 @@
 package graft
 
 import (
+	corecheckbox "github.com/gogpu/ui/core/checkbox"
 	"github.com/gogpu/ui/event"
 	"github.com/gogpu/ui/geometry"
 	"github.com/gogpu/ui/icon"
@@ -24,7 +25,7 @@ import (
 // cursor. Space toggles when focused. Colors are resolved from the active
 // token set inside Draw so mode switches repaint without rebuilding.
 type CheckboxWidget struct {
-	widget.WidgetBase
+	*corecheckbox.Widget
 
 	label string
 
@@ -46,9 +47,23 @@ type CheckboxWidget struct {
 // Checkbox creates an unchecked checkbox snapshotting the current theme.
 func Checkbox() *CheckboxWidget {
 	c := &CheckboxWidget{theme: CurrentTheme()}
+	c.Widget = corecheckbox.New(
+		corecheckbox.LabelFn(c.resolvedLabel),
+		corecheckbox.CheckedFn(c.IsChecked),
+		corecheckbox.DisabledFn(c.resolvedDisabled),
+		corecheckbox.OnToggle(c.applyCoreToggle),
+		corecheckbox.PainterOpt(checkboxCorePainter{c: c}),
+	)
+	c.Widget.Padding(0)
 	c.SetVisible(true)
 	c.SetEnabled(true)
 	return c
+}
+
+type checkboxCorePainter struct{ c *CheckboxWidget }
+
+func (p checkboxCorePainter) PaintCheckbox(canvas widget.Canvas, state corecheckbox.PaintState) {
+	p.c.paintCoreCheckbox(canvas, state)
 }
 
 // Label sets the text rendered to the right of the box (Label style: 14px /
@@ -110,6 +125,10 @@ func (c *CheckboxWidget) IsChecked() bool {
 	return c.checked
 }
 
+func (c *CheckboxWidget) resolvedLabel() string { return c.label }
+
+func (c *CheckboxWidget) resolvedDisabled() bool { return c.disabled }
+
 // isIndeterminate reports the effective mixed state (signal wins).
 func (c *CheckboxWidget) isIndeterminate() bool {
 	if c.indeterminateSig != nil {
@@ -141,26 +160,30 @@ func (c *CheckboxWidget) Layout(_ widget.Context, constraints geometry.Constrain
 		w += metrics.Checkbox.LabelGap + labelW
 	}
 	size := constraints.Constrain(geometry.Sz(w, h))
-	c.SetBounds(geometry.FromPointSize(c.Position(), size))
+	c.Widget.SetBounds(geometry.FromPointSize(c.Position(), size))
 	return size
 }
 
-// Draw renders the box (shadow, fill, border, indicator, focus ring) and the
-// optional label.
-func (c *CheckboxWidget) Draw(_ widget.Context, canvas widget.Canvas) {
+// Draw delegates interaction state to core/checkbox and paints through the
+// graft shadcn painter.
+func (c *CheckboxWidget) Draw(ctx widget.Context, canvas widget.Canvas) {
 	if !c.IsVisible() {
 		return
 	}
+	c.Widget.Draw(ctx, canvas)
+}
+
+func (c *CheckboxWidget) paintCoreCheckbox(canvas widget.Canvas, state corecheckbox.PaintState) {
 	th := c.resolvedTheme()
 	tok := th.Active()
 	dark := th.IsDark()
-	bounds := c.Bounds()
-	disabled := c.disabled
+	bounds := state.Bounds
+	disabled := state.Disabled
 
 	boxSize := metrics.Checkbox.Size
 	box := geometry.NewRect(bounds.Min.X, bounds.Min.Y+(bounds.Height()-boxSize)/2, boxSize, boxSize)
 	radius := metrics.Checkbox.Radius
-	checked := c.IsChecked()
+	checked := state.Checked
 	indeterminate := c.isIndeterminate()
 	marked := checked || indeterminate
 
@@ -255,50 +278,26 @@ func (c *CheckboxWidget) toggle(ctx widget.Context) {
 	ctx.InvalidateRect(c.Bounds())
 }
 
-// Event handles hover, click, and Space-to-toggle.
-func (c *CheckboxWidget) Event(ctx widget.Context, e event.Event) bool {
-	if c.disabled {
-		return false
+func (c *CheckboxWidget) applyCoreToggle(next bool) {
+	if c.isIndeterminate() {
+		next = true
 	}
-	switch ev := e.(type) {
-	case *event.MouseEvent:
-		return c.mouseEvent(ctx, ev)
-	case *event.KeyEvent:
-		if c.IsFocused() && ev.KeyType == event.KeyPress && ev.Key == event.KeySpace {
-			c.toggle(ctx)
-			return true
-		}
+	c.checked = next
+	if c.sig != nil {
+		c.sig.Set(next)
 	}
-	return false
+	if c.onChange != nil {
+		c.onChange(next)
+	}
 }
 
-func (c *CheckboxWidget) mouseEvent(ctx widget.Context, ev *event.MouseEvent) bool {
-	switch ev.MouseType {
-	case event.MouseEnter:
-		c.hovered = true
-		ctx.SetCursor(widget.CursorPointer)
-		c.SetNeedsRedraw(true)
-		ctx.InvalidateRect(c.Bounds())
-		return true
-	case event.MouseLeave:
-		c.hovered = false
-		ctx.SetCursor(widget.CursorDefault)
-		c.SetNeedsRedraw(true)
-		ctx.InvalidateRect(c.Bounds())
-		return true
-	case event.MousePress:
-		if ev.Button != event.ButtonLeft {
-			return false
-		}
-		ctx.RequestFocus(c)
-		return true
-	case event.MouseRelease:
-		if c.Bounds().Contains(ev.Position) {
-			c.toggle(ctx)
-		}
+// Event handles hover, click, and Space-to-toggle.
+func (c *CheckboxWidget) Event(ctx widget.Context, e event.Event) bool {
+	if ev, ok := e.(*event.KeyEvent); ok && c.IsFocused() && ev.KeyType == event.KeyPress && ev.Key == event.KeySpace {
+		c.applyCoreToggle(!c.IsChecked())
 		return true
 	}
-	return false
+	return c.Widget.Event(focusRedirectContext{Context: ctx, from: c.Widget, to: c}, e)
 }
 
 // Children returns nil; the checkbox is a leaf.
