@@ -33,6 +33,7 @@ package graftapp
 
 import (
 	"fmt"
+	"runtime"
 
 	_ "github.com/gogpu/gg/gpu" // GPU SDF acceleration (else every boundary falls back to CPU)
 
@@ -121,9 +122,18 @@ func (a *App) Run(root graft.Widget) error {
 	// point (and the scroll painter below) resolve against it.
 	graft.SetTheme(th)
 
-	gpuApp := gogpu.NewApp(gogpu.DefaultConfig().
+	cfg := gogpu.DefaultConfig().
 		WithTitle(a.title).
-		WithSize(a.width, a.height))
+		WithSize(a.width, a.height)
+	// On Windows, default to DX12 instead of Vulkan: AMD Radeon GPUs have a
+	// Vulkan driver bug where the even-odd stencil-then-cover pass renders thin
+	// strokes (1px borders, spinner arcs, focus rings) as solid filled boxes
+	// (gogpu/gg#374). DX12 renders them correctly. Only override when the API is
+	// still Auto, so an explicit GOGPU_GRAPHICS_API env choice still wins.
+	if runtime.GOOS == "windows" && cfg.GraphicsAPI == gogpu.GraphicsAPIAuto {
+		cfg = cfg.WithGraphicsAPI(gogpu.GraphicsAPIDX12)
+	}
+	gpuApp := gogpu.NewApp(cfg)
 
 	// Wire the OS clipboard into graft-owned widgets (Textarea). Read errors
 	// are swallowed to an empty string so a paste with no/unreadable clipboard
